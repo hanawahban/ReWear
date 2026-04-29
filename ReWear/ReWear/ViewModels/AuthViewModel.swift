@@ -1,8 +1,6 @@
 import Foundation
 import SwiftUI
 
-
-
 class AuthViewModel: ObservableObject {
 
 
@@ -22,7 +20,7 @@ class AuthViewModel: ObservableObject {
         isLoggedIn = false
     }
 
-    // ── Sign Up ───────────────────────────────────────────────────────────
+    // Sign Up
     func signUp(name: String, email: String, password: String) {
         isLoading = true
         errorMessage = nil
@@ -37,7 +35,7 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    // ── Log In ────────────────────────────────────────────────────────────
+    // login
     func logIn(email: String, password: String) {
         isLoading = true
         errorMessage = nil
@@ -59,7 +57,6 @@ class AuthViewModel: ObservableObject {
         isLoggedIn = false
     }
 
-    // ── Fetch user from Firestore ─────────────────────────────────────────
     func fetchUser(id: String) {
         // needs actual data fetching
     }
