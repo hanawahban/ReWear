@@ -1,7 +1,8 @@
 import SwiftUI
 
-
 struct InboxView: View {
+
+    @State private var searchText = ""
 
     let conversations: [(String, String, String, String, Bool)] = [
         ("Sara M.", "Is this still available?", "2m", "SM", true),
@@ -9,7 +10,20 @@ struct InboxView: View {
         ("Nour A.", "What's your best price?", "Yesterday", "NA", false),
         ("Farah S.", "I'll take it!", "Mon", "FS", true),
         ("Hana J.", "Already sold, sorry.", "Sun", "HJ", false),
+        ("Mia K.", "Can I see more photos?", "Last week", "MK", false),
     ]
+
+    // Filter conversations by sender name
+    var filteredConversations: [(String, String, String, String, Bool)] {
+        if searchText.isEmpty { return conversations }
+        return conversations.filter {
+            $0.0.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var unreadCount: Int {
+        conversations.filter { $0.4 }.count
+    }
 
     var body: some View {
         NavigationStack {
@@ -17,11 +31,18 @@ struct InboxView: View {
                 Color.rwBackground.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Header
+
                     HStack {
-                        Text("Messages")
-                            .font(.rwTitle)
-                            .foregroundColor(Color.rwTextPrimary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Messages")
+                                .font(.rwTitle)
+                                .foregroundColor(Color.rwTextPrimary)
+                            if unreadCount > 0 {
+                                Text("\(unreadCount) unread")
+                                    .font(.rwMicro)
+                                    .foregroundColor(Color.rwSage)
+                            }
+                        }
                         Spacer()
                         Image(systemName: "square.and.pencil")
                             .font(.system(size: 18))
@@ -31,48 +52,97 @@ struct InboxView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 14)
 
-                    RWDivider()
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(Color.rwTextSecondary)
+                            .font(.system(size: 14))
 
-                    List {
-                        ForEach(conversations, id: \.0) { conv in
-                            NavigationLink(destination: ChatView(sellerName: conv.0, initials: conv.3)) {
-                                HStack(spacing: 14) {
-                                    ZStack(alignment: .bottomTrailing) {
-                                        RWAvatar(initials: conv.3, size: 50)
-                                        if conv.4 {
-                                            Circle()
-                                                .fill(Color.rwPrimary)
-                                                .frame(width: 12, height: 12)
-                                                .overlay(Circle().stroke(Color.rwBackground, lineWidth: 2))
-                                        }
-                                    }
+                        TextField("Search messages...", text: $searchText)
+                            .font(.rwBody)
 
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack {
-                                            Text(conv.0)
-                                                .font(.rwBodyBold)
-                                                .foregroundColor(Color.rwTextPrimary)
-                                            Spacer()
-                                            Text(conv.2)
-                                                .font(.rwMicro)
-                                                .foregroundColor(Color.rwTextSecondary)
-                                        }
-                                        Text(conv.1)
-                                            .font(.rwCaption)
-                                            .foregroundColor(conv.4 ? Color.rwTextPrimary : Color.rwTextSecondary)
-                                            .lineLimit(1)
-                                            .fontWeight(conv.4 ? .semibold : .regular)
-                                    }
-                                }
-                                .padding(.vertical, 6)
+                        if !searchText.isEmpty {
+                            Button(action: { searchText = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(Color.rwTextSecondary)
+                                    .font(.system(size: 14))
                             }
-                            .listRowBackground(Color.rwBackground)
-                            .listRowSeparatorTint(Color.rwBorder)
                         }
                     }
-                    .listStyle(.plain)
-                    .background(Color.rwBackground)
-                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.rwSurface)
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
+
+                    RWDivider()
+
+                    if filteredConversations.isEmpty {
+                        VStack(spacing: 16) {
+                            Spacer()
+                            ZStack {
+                                Circle()
+                                    .fill(Color.rwSageTint)
+                                    .frame(width: 80, height: 80)
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 32, weight: .thin))
+                                    .foregroundColor(Color.rwSage)
+                            }
+                            Text("No conversations found")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+                            Text("Try a different name")
+                                .font(.rwBody)
+                                .foregroundColor(Color.rwTextSecondary)
+                            Spacer()
+                        }
+                    } else {
+                        List {
+                            ForEach(filteredConversations, id: \.0) { conv in
+                                NavigationLink(destination: ChatView(
+                                    sellerName: conv.0,
+                                    initials: conv.3
+                                )) {
+                                    HStack(spacing: 14) {
+
+                                        ZStack(alignment: .bottomTrailing) {
+                                            RWAvatar(initials: conv.3, size: 50)
+                                            if conv.4 {
+                                                Circle()
+                                                    .fill(Color.rwPrimary)
+                                                    .frame(width: 12, height: 12)
+                                                    .overlay(Circle().stroke(Color.rwBackground, lineWidth: 2))
+                                            }
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack {
+                                                Text(conv.0)
+                                                    .font(conv.4 ? .rwBodyBold : .rwBody)
+                                                    .foregroundColor(Color.rwTextPrimary)
+                                                Spacer()
+                                                Text(conv.2)
+                                                    .font(.rwMicro)
+                                                    .foregroundColor(Color.rwTextSecondary)
+                                            }
+                                            Text(conv.1)
+                                                .font(.rwCaption)
+                                                .foregroundColor(conv.4 ? Color.rwTextPrimary : Color.rwTextSecondary)
+                                                .lineLimit(1)
+                                                .fontWeight(conv.4 ? .semibold : .regular)
+                                        }
+                                    }
+                                    .padding(.vertical, 6)
+                                }
+                                .listRowBackground(Color.rwBackground)
+                                .listRowSeparatorTint(Color.rwBorder)
+                            }
+                        }
+                        .listStyle(.plain)
+                        .background(Color.rwBackground)
+                        .scrollContentBackground(.hidden)
+                    }
                 }
             }
             .navigationBarHidden(true)
@@ -80,23 +150,24 @@ struct InboxView: View {
     }
 }
 
-//Chat
 struct ChatView: View {
 
     var sellerName: String = "Sara M."
     var initials: String = "SM"
-    @State private var messageText = ""
-    @Environment(\.dismiss) var dismiss
 
-    let messages: [(String, Bool)] = [
+    @State private var messageText = ""
+    @State private var messages: [(String, Bool)] = [
         ("Hi! Is the linen blazer still available?", true),
         ("Yes it is! Are you interested?", false),
-        ("Yes for sure. What's the condition like?", true),
+        ("Yes, what's the condition like?", true),
         ("It's like new, barely worn. No stains.", false),
         ("Can you do BHD 7?", true),
         ("Best I can do is BHD 8. It's a great piece!", false),
         ("Deal! When can I pick it up?", true),
     ]
+
+    @Environment(\.dismiss) var dismiss
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -143,49 +214,59 @@ struct ChatView: View {
                         .foregroundColor(Color.rwPrimary)
                 }
                 Spacer()
-                Text("View item")
-                    .font(.rwMicro)
-                    .foregroundColor(Color.rwPrimary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.rwPrimary, lineWidth: 1))
+                NavigationLink(destination: ProductDetailView()) {
+                    Text("View item")
+                        .font(.rwMicro)
+                        .foregroundColor(Color.rwPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.rwPrimary, lineWidth: 1))
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(Color.rwSurface)
             .overlay(alignment: .bottom) { RWDivider() }
 
-            ScrollView {
-                LazyVStack(spacing: 10) {
-                    ForEach(Array(messages.enumerated()), id: \.offset) { _, msg in
-                        HStack(alignment: .bottom, spacing: 8) {
-                            if msg.1 {
-                                Spacer(minLength: 60)
-                            } else {
-                                RWAvatar(initials: initials, size: 28)
-                            }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(Array(messages.enumerated()), id: \.offset) { index, msg in
+                            HStack(alignment: .bottom, spacing: 8) {
+                                if msg.1 {
+                                    Spacer(minLength: 60)
+                                } else {
+                                    RWAvatar(initials: initials, size: 28)
+                                }
 
-                            Text(msg.0)
-                                .font(.rwBody)
-                                .foregroundColor(msg.1 ? .white : Color.rwTextPrimary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(msg.1 ? Color.rwPrimary : Color.rwSurface)
-                                .cornerRadius(msg.1 ? 18 : 18)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18)
-                                        .stroke(msg.1 ? Color.clear : Color.rwBorder, lineWidth: 1)
-                                )
+                                Text(msg.0)
+                                    .font(.rwBody)
+                                    .foregroundColor(msg.1 ? .white : Color.rwTextPrimary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(msg.1 ? Color.rwPrimary : Color.rwSurface)
+                                    .cornerRadius(18)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18)
+                                            .stroke(msg.1 ? Color.clear : Color.rwBorder, lineWidth: 1)
+                                    )
+                                    .id(index)
 
-                            if !msg.1 {
-                                Spacer(minLength: 60)
+                                if !msg.1 {
+                                    Spacer(minLength: 60)
+                                }
                             }
                         }
                     }
+                    .padding(16)
                 }
-                .padding(16)
+                .background(Color.rwBackground)
+                .onChange(of: messages.count) { _ in
+                    withAnimation {
+                        proxy.scrollTo(messages.count - 1, anchor: .bottom)
+                    }
+                }
             }
-            .background(Color.rwBackground)
 
             RWDivider()
 
@@ -194,26 +275,26 @@ struct ChatView: View {
                     .font(.system(size: 18))
                     .foregroundColor(Color.rwTextSecondary)
 
-                HStack {
-                    Text("Message...")
-                        .font(.rwBody)
-                        .foregroundColor(Color.rwTextSecondary)
-                    Spacer()
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.rwSageTint)
-                .cornerRadius(22)
-                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.rwBorder, lineWidth: 1))
+                TextField("Message...", text: $messageText)
+                    .font(.rwBody)
+                    .focused($isInputFocused)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.rwSageTint)
+                    .cornerRadius(22)
+                    .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.rwBorder, lineWidth: 1))
 
-                ZStack {
-                    Circle()
-                        .fill(Color.rwPrimary)
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                Button(action: sendMessage) {
+                    ZStack {
+                        Circle()
+                            .fill(messageText.isEmpty ? Color.rwSage.opacity(0.4) : Color.rwPrimary)
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
                 }
+                .disabled(messageText.isEmpty)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -221,6 +302,15 @@ struct ChatView: View {
         }
         .navigationBarHidden(true)
         .background(Color.rwBackground)
+    }
+
+    func sendMessage() {
+        guard !messageText.isEmpty else { return }
+        withAnimation {
+            messages.append((messageText, true))
+            messageText = ""
+        }
+        //Replace with ChatViewModel.sendMessage()
     }
 }
 

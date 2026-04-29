@@ -26,7 +26,6 @@ struct ProfileView: View {
                     VStack(spacing: 0) {
 
                         VStack(spacing: 14) {
-
                             ZStack(alignment: .bottomTrailing) {
                                 RWAvatar(initials: "HW", size: 84)
                                 ZStack {
@@ -63,7 +62,6 @@ struct ProfileView: View {
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
-                            // Action buttons
                             HStack(spacing: 10) {
                                 RWOutlineButton(label: "Edit Profile")
                                 RWOutlineButton(label: "Share", icon: "square.and.arrow.up")
@@ -75,22 +73,16 @@ struct ProfileView: View {
                         RWDivider()
 
                         VStack(spacing: 10) {
-
                             NavigationLink(destination: FavoritesView()) {
                                 RWProfileLink(icon: "heart", label: "Saved Items", count: "4")
                             }
                             .buttonStyle(.plain)
 
-                            // Reviews received
-                            NavigationLink(destination: ReviewView()) {
-                                RWProfileLink(icon: "star", label: "Reviews Received", count: "31")
+                            NavigationLink(destination: SettingsView()) {
+                                RWProfileLink(icon: "gearshape", label: "Settings")
                             }
                             .buttonStyle(.plain)
 
-                            // Settings
-                            RWProfileLink(icon: "gearshape", label: "Settings")
-
-                            // Log out
                             Button(action: {}) {
                                 HStack {
                                     Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -112,6 +104,7 @@ struct ProfileView: View {
 
                         RWDivider()
 
+                        // ── Tabs ─────────────────────────────────────────
                         HStack(spacing: 0) {
                             ForEach(["My Listings", "Reviews"], id: \.self) { tab in
                                 let selected = (tab == "My Listings") ? selectedTab == 0 : selectedTab == 1
@@ -191,7 +184,6 @@ struct SellerProfileView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
 
-                    // Back button row
                     HStack {
                         Button(action: { dismiss() }) {
                             Image(systemName: "chevron.left")
@@ -235,7 +227,19 @@ struct SellerProfileView: View {
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
                         HStack(spacing: 10) {
-                            RWPrimaryButton(label: "Message", icon: "message")
+                            NavigationLink(destination: ChatView(sellerName: "Lena K.", initials: "LK")) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "message")
+                                        .font(.system(size: 13, weight: .semibold))
+                                    Text("Message")
+                                        .font(.rwBodyBold)
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 15)
+                                .background(Color.rwPrimary)
+                                .cornerRadius(14)
+                            }
                             RWOutlineButton(label: "Follow")
                         }
                     }
@@ -289,11 +293,12 @@ struct SellerProfileView: View {
     }
 }
 
-// ── Review Form ───────────────────────────────────────────────────────────────
 struct ReviewView: View {
 
     @State private var selectedRating = 0
     @State private var reviewText = ""
+    @State private var isSubmitting = false
+    @State private var showThankYou = false
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -301,109 +306,193 @@ struct ReviewView: View {
             ZStack {
                 Color.rwBackground.ignoresSafeArea()
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 24) {
+                if showThankYou {
+                    // ── Thank you screen ─────────────────────────────────
+                    VStack(spacing: 28) {
+                        Spacer()
 
-                        // Transaction item summary
-                        HStack(spacing: 14) {
-                            RoundedRectangle(cornerRadius: 10)
+                        ZStack {
+                            Circle()
                                 .fill(Color.rwSageTint)
-                                .frame(width: 64, height: 64)
-                                .overlay(
-                                    Image(systemName: "tshirt")
-                                        .font(.system(size: 22, weight: .thin))
-                                        .foregroundColor(Color.rwSage)
-                                )
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Linen Blazer — Beige")
-                                    .font(.rwBodyBold)
-                                    .foregroundColor(Color.rwTextPrimary)
-                                Text("BHD 8.500")
-                                    .font(.rwCaption)
-                                    .foregroundColor(Color.rwPrimary)
-                                Text("Sold by Hana W.")
-                                    .font(.rwMicro)
-                                    .foregroundColor(Color.rwTextSecondary)
-                            }
-                            Spacer()
+                                .frame(width: 110, height: 110)
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(Color.rwGold)
                         }
-                        .padding(14)
-                        .background(Color.rwSurface)
-                        .cornerRadius(16)
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.rwBorder, lineWidth: 1))
 
-                        RWDivider()
-
-                        // Star selector
-                        VStack(spacing: 14) {
-                            Text("How was your experience?")
-                                .font(.rwHeading)
+                        VStack(spacing: 10) {
+                            Text("Review Submitted!")
+                                .font(.rwTitle)
                                 .foregroundColor(Color.rwTextPrimary)
+                            Text("Thank you for your feedback.\nIt helps the ReWear community.")
+                                .font(.rwBody)
+                                .foregroundColor(Color.rwTextSecondary)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(4)
+                        }
 
-                            HStack(spacing: 16) {
-                                ForEach(1..<6) { star in
-                                    Button(action: { withAnimation { selectedRating = star } }) {
-                                        Image(systemName: selectedRating >= star ? "star.fill" : "star")
-                                            .font(.system(size: 32))
-                                            .foregroundColor(selectedRating >= star ? Color.rwGold : Color.rwBorder)
-                                            .scaleEffect(selectedRating == star ? 1.15 : 1.0)
+                        // Rating summary
+                        HStack(spacing: 8) {
+                            RWStarRating(rating: Double(selectedRating), size: 20)
+                            Text("\(selectedRating) star\(selectedRating > 1 ? "s" : "")")
+                                .font(.rwBodyBold)
+                                .foregroundColor(Color.rwTextPrimary)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(Color.rwSurface)
+                        .cornerRadius(14)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
+
+                        RWPrimaryButton(label: "Done") { dismiss() }
+                            .padding(.horizontal, 40)
+
+                        Spacer()
+                    }
+                    .transition(.opacity.combined(with: .scale))
+
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 24) {
+
+                            // Transaction summary
+                            HStack(spacing: 14) {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.rwSageTint)
+                                    .frame(width: 64, height: 64)
+                                    .overlay(
+                                        Image(systemName: "tshirt")
+                                            .font(.system(size: 22, weight: .thin))
+                                            .foregroundColor(Color.rwSage)
+                                    )
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Linen Blazer — Beige")
+                                        .font(.rwBodyBold)
+                                        .foregroundColor(Color.rwTextPrimary)
+                                    Text("BHD 8.500")
+                                        .font(.rwCaption)
+                                        .foregroundColor(Color.rwPrimary)
+                                    Text("Sold by Sara M.")
+                                        .font(.rwMicro)
+                                        .foregroundColor(Color.rwTextSecondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(14)
+                            .background(Color.rwSurface)
+                            .cornerRadius(16)
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.rwBorder, lineWidth: 1))
+
+                            RWDivider()
+
+                            // Star selector
+                            VStack(spacing: 14) {
+                                Text("How was your experience?")
+                                    .font(.rwHeading)
+                                    .foregroundColor(Color.rwTextPrimary)
+
+                                HStack(spacing: 16) {
+                                    ForEach(1..<6) { star in
+                                        Button(action: {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                                                selectedRating = star
+                                            }
+                                        }) {
+                                            Image(systemName: selectedRating >= star ? "star.fill" : "star")
+                                                .font(.system(size: 34))
+                                                .foregroundColor(selectedRating >= star ? Color.rwGold : Color.rwBorder)
+                                                .scaleEffect(selectedRating == star ? 1.2 : 1.0)
+                                                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: selectedRating)
+                                        }
                                     }
+                                }
+
+                                let labels = ["", "Poor", "Fair", "Good", "Great", "Excellent!"]
+                                if selectedRating > 0 {
+                                    Text(labels[selectedRating])
+                                        .font(.rwBodyBold)
+                                        .foregroundColor(Color.rwPrimary)
+                                        .transition(.opacity)
                                 }
                             }
 
-                            let labels = ["", "Poor", "Fair", "Good", "Great", "Excellent"]
-                            if selectedRating > 0 {
-                                Text(labels[selectedRating])
-                                    .font(.rwBodyBold)
-                                    .foregroundColor(Color.rwPrimary)
-                            }
-                        }
+                            RWDivider()
 
-                        RWDivider()
+                            // Written review
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Leave a comment (optional)")
+                                    .font(.rwHeading)
+                                    .foregroundColor(Color.rwTextPrimary)
 
-                        // Written review
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Leave a comment (optional)")
-                                .font(.rwHeading)
-                                .foregroundColor(Color.rwTextPrimary)
+                                ZStack(alignment: .topLeading) {
+                                    TextEditor(text: $reviewText)
+                                        .font(.rwBody)
+                                        .frame(height: 130)
+                                        .padding(10)
+                                        .background(Color.rwSageTint)
+                                        .cornerRadius(14)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .stroke(Color.rwBorder, lineWidth: 1)
+                                        )
+                                    if reviewText.isEmpty {
+                                        Text("Share your experience with this seller...")
+                                            .font(.rwBody)
+                                            .foregroundColor(Color.rwTextSecondary)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 18)
+                                            .allowsHitTesting(false)
+                                    }
+                                }
 
-                            ZStack(alignment: .topLeading) {
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.rwSageTint)
-                                    .frame(height: 130)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(Color.rwBorder, lineWidth: 1)
-                                    )
-                                Text("Share your experience with this seller...")
-                                    .font(.rwBody)
+                                Text("\(reviewText.count)/200")
+                                    .font(.rwMicro)
                                     .foregroundColor(Color.rwTextSecondary)
-                                    .padding(14)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
                             }
-                        }
 
-                        RWPrimaryButton(label: "Submit Review")
+                            // Submit button
+                            RWPrimaryButton(
+                                label: isSubmitting ? "Submitting..." : "Submit Review",
+                                action: handleSubmit
+                            )
+                            .opacity(selectedRating == 0 ? 0.5 : 1.0)
+                            .disabled(selectedRating == 0)
                             .padding(.bottom, 30)
+                        }
+                        .padding(20)
                     }
-                    .padding(20)
                 }
             }
-            .navigationTitle("Rate your experience")
+            .navigationTitle(showThankYou ? "" : "Rate your experience")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.rwBackground, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                        .font(.rwBody)
-                        .foregroundColor(Color.rwTextSecondary)
+                if !showThankYou {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") { dismiss() }
+                            .font(.rwBody)
+                            .foregroundColor(Color.rwTextSecondary)
+                    }
                 }
+            }
+        }
+    }
+
+    func handleSubmit() {
+        guard selectedRating > 0 else { return }
+        isSubmitting = true
+        // TEAMMATE: Replace with ReviewViewModel.submitReview()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            isSubmitting = false
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showThankYou = true
             }
         }
     }
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
-
 struct RWStatCell: View {
     var value: String
     var label: String
@@ -437,12 +526,10 @@ struct RWReviewRow: View {
     }
 }
 
-// Profile quick link row
 struct RWProfileLink: View {
     var icon: String
     var label: String
     var count: String? = nil
-
     var body: some View {
         HStack {
             Image(systemName: icon)

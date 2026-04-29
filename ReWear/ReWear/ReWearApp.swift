@@ -4,7 +4,7 @@ import SwiftUI
 struct ReWearApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SplashCoordinatorView()
         }
     }
 }
