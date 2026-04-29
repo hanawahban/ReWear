@@ -7,7 +7,7 @@ struct ProductDetailView: View {
     @Environment(\.dismiss) var dismiss
 
     let mockReviews = [
-        ("Sara M.", "Great seller, super fast response. Item exactly as described!", 5.0),
+        ("Hana W.", "Great seller, super fast response. Item exactly as described!", 5.0),
         ("Lena K.", "Lovely piece, arrived well packaged.", 4.0),
         ("Nour A.", "Would definitely buy from again.", 5.0),
     ]

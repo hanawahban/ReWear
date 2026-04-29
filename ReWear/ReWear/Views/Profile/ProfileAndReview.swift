@@ -26,6 +26,7 @@ struct ProfileView: View {
                     VStack(spacing: 0) {
 
                         VStack(spacing: 14) {
+
                             ZStack(alignment: .bottomTrailing) {
                                 RWAvatar(initials: "HW", size: 84)
                                 ZStack {
@@ -62,6 +63,7 @@ struct ProfileView: View {
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
+                            // Action buttons
                             HStack(spacing: 10) {
                                 RWOutlineButton(label: "Edit Profile")
                                 RWOutlineButton(label: "Share", icon: "square.and.arrow.up")
@@ -69,6 +71,44 @@ struct ProfileView: View {
                             }
                         }
                         .padding(20)
+
+                        RWDivider()
+
+                        VStack(spacing: 10) {
+
+                            NavigationLink(destination: FavoritesView()) {
+                                RWProfileLink(icon: "heart", label: "Saved Items", count: "4")
+                            }
+                            .buttonStyle(.plain)
+
+                            // Reviews received
+                            NavigationLink(destination: ReviewView()) {
+                                RWProfileLink(icon: "star", label: "Reviews Received", count: "31")
+                            }
+                            .buttonStyle(.plain)
+
+                            // Settings
+                            RWProfileLink(icon: "gearshape", label: "Settings")
+
+                            // Log out
+                            Button(action: {}) {
+                                HStack {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(Color.rwDanger)
+                                    Text("Log Out")
+                                        .font(.rwBodyBold)
+                                        .foregroundColor(Color.rwDanger)
+                                    Spacer()
+                                }
+                                .padding(14)
+                                .background(Color.rwSurface)
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
 
                         RWDivider()
 
@@ -117,6 +157,7 @@ struct ProfileView: View {
                                 }
                             }
                             .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
                         }
                     }
                 }
@@ -150,7 +191,7 @@ struct SellerProfileView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
 
-                    // Back button
+                    // Back button row
                     HStack {
                         Button(action: { dismiss() }) {
                             Image(systemName: "chevron.left")
@@ -239,6 +280,7 @@ struct SellerProfileView: View {
                             }
                         }
                         .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     }
                 }
             }
@@ -247,6 +289,7 @@ struct SellerProfileView: View {
     }
 }
 
+// ── Review Form ───────────────────────────────────────────────────────────────
 struct ReviewView: View {
 
     @State private var selectedRating = 0
@@ -261,11 +304,16 @@ struct ReviewView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
 
+                        // Transaction item summary
                         HStack(spacing: 14) {
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(Color.rwSageTint)
                                 .frame(width: 64, height: 64)
-                                .overlay(Image(systemName: "tshirt").font(.system(size: 22, weight: .thin)).foregroundColor(Color.rwSage))
+                                .overlay(
+                                    Image(systemName: "tshirt")
+                                        .font(.system(size: 22, weight: .thin))
+                                        .foregroundColor(Color.rwSage)
+                                )
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Linen Blazer — Beige")
                                     .font(.rwBodyBold)
@@ -273,7 +321,7 @@ struct ReviewView: View {
                                 Text("BHD 8.500")
                                     .font(.rwCaption)
                                     .foregroundColor(Color.rwPrimary)
-                                Text("Sold by Sara M.")
+                                Text("Sold by Hana W.")
                                     .font(.rwMicro)
                                     .foregroundColor(Color.rwTextSecondary)
                             }
@@ -286,6 +334,7 @@ struct ReviewView: View {
 
                         RWDivider()
 
+                        // Star selector
                         VStack(spacing: 14) {
                             Text("How was your experience?")
                                 .font(.rwHeading)
@@ -312,6 +361,7 @@ struct ReviewView: View {
 
                         RWDivider()
 
+                        // Written review
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Leave a comment (optional)")
                                 .font(.rwHeading)
@@ -321,7 +371,10 @@ struct ReviewView: View {
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(Color.rwSageTint)
                                     .frame(height: 130)
-                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(Color.rwBorder, lineWidth: 1)
+                                    )
                                 Text("Share your experience with this seller...")
                                     .font(.rwBody)
                                     .foregroundColor(Color.rwTextSecondary)
@@ -348,6 +401,8 @@ struct ReviewView: View {
         }
     }
 }
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
 
 struct RWStatCell: View {
     var value: String
@@ -379,6 +434,38 @@ struct RWReviewRow: View {
             }
         }
         .padding(.vertical, 14)
+    }
+}
+
+// Profile quick link row
+struct RWProfileLink: View {
+    var icon: String
+    var label: String
+    var count: String? = nil
+
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.system(size: 15))
+                .foregroundColor(Color.rwPrimary)
+                .frame(width: 24)
+            Text(label)
+                .font(.rwBodyBold)
+                .foregroundColor(Color.rwTextPrimary)
+            Spacer()
+            if let count {
+                Text(count)
+                    .font(.rwCaption)
+                    .foregroundColor(Color.rwTextSecondary)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12))
+                .foregroundColor(Color.rwTextSecondary)
+        }
+        .padding(14)
+        .background(Color.rwSurface)
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
     }
 }
 

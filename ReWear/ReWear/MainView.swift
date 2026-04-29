@@ -18,9 +18,9 @@ struct MainView: View {
                     Label("Sell", systemImage: "plus.circle.fill")
                 }
 
-            FavoritesView()
+            InboxView()
                 .tabItem {
-                    Label("Saved", systemImage: "heart")
+                    Label("Inbox", systemImage: "message")
                 }
 
             ProfileView()
@@ -28,6 +28,7 @@ struct MainView: View {
                     Label("Profile", systemImage: "person")
                 }
         }
+        .tint(Color.rwPrimary)
         .tint(Color.rwPrimary)
     }
 }
