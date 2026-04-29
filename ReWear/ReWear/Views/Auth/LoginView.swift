@@ -4,77 +4,109 @@ struct LoginView: View {
 
     @State private var email = ""
     @State private var password = ""
+    @State private var name = ""
+    @State private var confirmPassword = ""
     @State private var isSignUp = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
 
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemGray5))
-                .frame(width: 90, height: 90)
-                .overlay(Text("LOGO").font(.caption).foregroundColor(.gray))
-                .padding(.top, 60)
+                VStack(spacing: 6) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.rwPrimary)
+                            .frame(width: 72, height: 72)
+                        Image(systemName: "arrow.3.trianglepath")
+                            .font(.system(size: 28, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.top, 56)
 
-            Text("ReWear")
-                .font(.title2).bold()
-                .padding(.top, 12)
+                    Text("R E W E A R")
+                        .font(.rwDisplay)
+                        .foregroundColor(Color.rwPrimary)
+                        .kerning(6)
+                        .padding(.top, 10)
 
-            Text("Give Your Clothes a ReWear")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .padding(.bottom, 36)
-
-            Picker("Mode", selection: $isSignUp) {
-                Text("Log In").tag(false)
-                Text("Sign Up").tag(true)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
-
-            VStack(spacing: 14) {
-
-                if isSignUp {
-                    WireframeTextField(placeholder: "Full name")
+                    Text("Give Your Clothes a ReWear")
+                        .font(.rwCaption)
+                        .foregroundColor(Color.rwTextSecondary)
+                        .padding(.bottom, 36)
                 }
 
-                WireframeTextField(placeholder: "Email address")
-                WireframeTextField(placeholder: "Password", isSecure: true)
-
-                if isSignUp {
-                    WireframeTextField(placeholder: "Confirm password", isSecure: true)
+                HStack(spacing: 0) {
+                    ForEach(["Log In", "Sign Up"], id: \.self) { tab in
+                        let selected = (tab == "Log In") ? !isSignUp : isSignUp
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isSignUp = tab == "Sign Up"
+                            }
+                        }) {
+                            VStack(spacing: 6) {
+                                Text(tab)
+                                    .font(.rwBodyBold)
+                                    .foregroundColor(selected ? Color.rwPrimary : Color.rwTextSecondary)
+                                Rectangle()
+                                    .fill(selected ? Color.rwPrimary : Color.clear)
+                                    .frame(height: 2)
+                                    .cornerRadius(1)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
                 }
-            }
-            .padding(.horizontal, 24)
-
-            WireframeButton(label: isSignUp ? "Create Account" : "Log In")
                 .padding(.horizontal, 24)
-                .padding(.top, 24)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.rwBorder).frame(height: 1)
+                }
+                .padding(.bottom, 28)
 
-            HStack {
-                Rectangle().fill(Color(.systemGray4)).frame(height: 1)
-                Text("or").font(.caption).foregroundColor(.secondary).padding(.horizontal, 8)
-                Rectangle().fill(Color(.systemGray4)).frame(height: 1)
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 18)
-
-            WireframeButton(label: "Continue with Apple", style: .outline)
+                VStack(spacing: 14) {
+                    if isSignUp {
+                        RWTextField(placeholder: "Full name", text: $name, icon: "person")
+                    }
+                    RWTextField(placeholder: "Email address", text: $email, icon: "envelope")
+                    RWTextField(placeholder: "Password", text: $password, icon: "lock", isSecure: true)
+                    if isSignUp {
+                        RWTextField(placeholder: "Confirm password", text: $confirmPassword, icon: "lock", isSecure: true)
+                    }
+                }
                 .padding(.horizontal, 24)
 
-            WireframeButton(label: "Continue with Google", style: .outline)
+                RWPrimaryButton(label: isSignUp ? "Create Account" : "Log In")
+                    .padding(.horizontal, 24)
+                    .padding(.top, 22)
+
+                HStack {
+                    Rectangle().fill(Color.rwBorder).frame(height: 1)
+                    Text("or")
+                        .font(.rwCaption)
+                        .foregroundColor(Color.rwTextSecondary)
+                        .padding(.horizontal, 12)
+                    Rectangle().fill(Color.rwBorder).frame(height: 1)
+                }
                 .padding(.horizontal, 24)
-                .padding(.top, 10)
+                .padding(.vertical, 20)
 
-            Spacer()
+                VStack(spacing: 12) {
+                    RWOutlineButton(label: "Continue with Apple", icon: "apple.logo")
+                    RWOutlineButton(label: "Continue with Google", icon: "globe")
+                }
+                .padding(.horizontal, 24)
 
-            Button(action: { isSignUp.toggle() }) {
-                Text(isSignUp ? "Already have an account? Log In" : "Don't have an account? Sign Up")
-                    .font(.footnote)
-                    .foregroundColor(.gray)
+                Text(isSignUp
+                     ? "By signing up, you agree to our Terms & Privacy Policy."
+                     : "Forgot your password?")
+                    .font(.rwMicro)
+                    .foregroundColor(Color.rwTextSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .padding(.top, 24)
+                    .padding(.bottom, 40)
             }
-            .padding(.bottom, 32)
         }
+        .background(Color.rwBackground.ignoresSafeArea())
     }
 }
 

@@ -5,176 +5,214 @@ struct AddListingView: View {
     @State private var title = ""
     @State private var description = ""
     @State private var price = ""
-    @State private var selectedCategory = "Select category"
-    @State private var condition = "Select condition"
+    @State private var selectedCategory = ""
+    @State private var selectedCondition = ""
+    @State private var selectedSize = ""
+    @State private var brand = ""
+    @State private var showCategoryPicker = false
 
-    let categories = ["Electronics", "Clothing", "Furniture", "Books", "Vehicles", "Sports", "Other"]
-    let conditions = ["New", "Like New", "Good", "Fair", "Poor"]
+    let categories = ["Tops", "Dresses", "Outerwear", "Bottoms", "Shoes", "Bags", "Accessories"]
+    let conditions = ["New with tags", "Like New", "Good", "Fair", "Poor"]
+    let sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"]
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+            ZStack {
+                Color.rwBackground.ignoresSafeArea()
 
-                    Text("Photos")
-                        .font(.subheadline).bold()
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 24) {
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Photos")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+                            Text("Add up to 8 photos. First photo is the cover.")
+                                .font(.rwCaption)
+                                .foregroundColor(Color.rwTextSecondary)
 
-                            // Add photo button
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(.systemGray6))
-                                .frame(width: 90, height: 90)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    // Add button
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.rwSageTint)
+                                        .frame(width: 88, height: 88)
+                                        .overlay(
+                                            VStack(spacing: 6) {
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 20, weight: .medium))
+                                                    .foregroundColor(Color.rwPrimary)
+                                                Text("Add")
+                                                    .font(.rwMicro)
+                                                    .foregroundColor(Color.rwPrimary)
+                                            }
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                                                .foregroundColor(Color.rwSage)
+                                        )
+
+                                    ForEach(0..<4, id: \.self) { _ in
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.rwSageTint)
+                                            .frame(width: 88, height: 88)
+                                            .overlay(
+                                                Image(systemName: "tshirt")
+                                                    .font(.system(size: 24, weight: .thin))
+                                                    .foregroundColor(Color.rwSage.opacity(0.5))
+                                            )
+                                    }
+                                }
+                            }
+                        }
+
+                        RWDivider()
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Item details")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+
+                            RWTextField(placeholder: "Title e.g. Zara linen blazer", text: $title)
+
+                            RWTextField(placeholder: "Brand (optional)", text: $brand, icon: "tag")
+
+                            // Description
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Description")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                ZStack(alignment: .topLeading) {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.rwSageTint)
+                                        .frame(height: 100)
+                                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
+                                    Text("Describe the item, its condition, measurements...")
+                                        .font(.rwBody)
+                                        .foregroundColor(Color.rwTextSecondary)
+                                        .padding(14)
+                                }
+                            }
+
+                            // Category
+                            RWPickerRow(label: "Category", value: selectedCategory.isEmpty ? "Select category" : selectedCategory)
+
+                            // Condition
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Condition")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(conditions, id: \.self) { c in
+                                            RWCategoryChip(
+                                                label: c,
+                                                isSelected: selectedCondition == c,
+                                                action: { selectedCondition = c }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Size")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(sizes, id: \.self) { s in
+                                            RWCategoryChip(
+                                                label: s,
+                                                isSelected: selectedSize == s,
+                                                action: { selectedSize = s }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            RWTextField(placeholder: "Price (BHD)", text: $price, icon: "banknote")
+                        }
+
+                        RWDivider()
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Location")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.rwSageTint)
+                                .frame(height: 120)
                                 .overlay(
-                                    VStack(spacing: 4) {
-                                        Image(systemName: "plus")
-                                            .font(.title2)
-                                            .foregroundColor(.gray)
-                                        Text("Add Photo")
-                                            .font(.caption2)
-                                            .foregroundColor(.gray)
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "map")
+                                            .font(.system(size: 28, weight: .thin))
+                                            .foregroundColor(Color.rwSage)
+                                        Text("Tap to set your location")
+                                            .font(.rwCaption)
+                                            .foregroundColor(Color.rwTextSecondary)
                                     }
                                 )
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
-                            ForEach(0..<4, id: \.self) { _ in
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color(.systemGray5))
-                                    .frame(width: 90, height: 90)
-                                    .overlay(Image(systemName: "photo").foregroundColor(.gray))
+                            HStack(spacing: 10) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color.rwPrimary)
+                                Text("Use my current location")
+                                    .font(.rwBodyBold)
+                                    .foregroundColor(Color.rwPrimary)
                             }
                         }
+
+                        RWDivider()
+
+                        RWPrimaryButton(label: "Post Listing")
+                            .padding(.bottom, 30)
                     }
-
-                    Divider()
-
-                    Text("Item Details")
-                        .font(.subheadline).bold()
-
-                    VStack(spacing: 14) {
-
-                        WireFormField(label: "Title", placeholder: "What are you selling?")
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Description")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(.systemGray6))
-                                .frame(height: 90)
-                                .overlay(
-                                    Text("Describe your item...")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                        .padding(12),
-                                    alignment: .topLeading
-                                )
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Category")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            HStack {
-                                Text(selectedCategory)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(12)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Condition")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            HStack {
-                                Text(condition)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(12)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(10)
-                        }
-
-                        WireFormField(label: "Price (BHD)", placeholder: "0.000")
-                    }
-
-                    Divider()
-
-                    Text("Location")
-                        .font(.subheadline).bold()
-
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray5))
-                        .frame(height: 130)
-                        .overlay(
-                            VStack(spacing: 6) {
-                                Image(systemName: "map")
-                                    .font(.title2)
-                                    .foregroundColor(.gray)
-                                Text("Tap to set location")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                        )
-
-                    HStack {
-                        Image(systemName: "location.fill").foregroundColor(.gray)
-                        Text("Use current location")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                        Spacer()
-                    }
-                    .padding(12)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-
-                    Divider()
-
-                    WireframeButton(label: "Post Listing")
-                        .padding(.bottom, 20)
+                    .padding(20)
                 }
-                .padding(16)
             }
-            .navigationTitle("Sell an Item")
+            .navigationTitle("Sell a piece")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.rwBackground, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Cancel").foregroundColor(.gray)
+                    Button("Cancel") {}
+                        .font(.rwBody)
+                        .foregroundColor(Color.rwTextSecondary)
                 }
             }
         }
     }
 }
 
-struct WireFormField: View {
+struct RWPickerRow: View {
     var label: String
-    var placeholder: String
+    var value: String
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.rwCaption)
+                .foregroundColor(Color.rwTextSecondary)
             HStack {
-                Text(placeholder)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+                Text(value)
+                    .font(.rwBody)
+                    .foregroundColor(value.contains("Select") ? Color.rwTextSecondary : Color.rwTextPrimary)
                 Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color.rwTextSecondary)
             }
-            .padding(12)
-            .background(Color(.systemGray6))
-            .cornerRadius(10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .background(Color.rwSageTint)
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
         }
     }
 }

@@ -4,161 +4,193 @@ struct ProductDetailView: View {
 
     @State private var isFavorited = false
     @State private var currentImage = 0
+    @Environment(\.dismiss) var dismiss
 
-    let mockReviews = ["Great seller, fast response!", "Item exactly as described.", "Would buy again."]
+    let mockReviews = [
+        ("Sara M.", "Great seller, super fast response. Item exactly as described!", 5.0),
+        ("Lena K.", "Lovely piece, arrived well packaged.", 4.0),
+        ("Nour A.", "Would definitely buy from again.", 5.0),
+    ]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+        ZStack(alignment: .bottom) {
+            Color.rwBackground.ignoresSafeArea()
 
-                ZStack(alignment: .bottomTrailing) {
-                    TabView(selection: $currentImage) {
-                        ForEach(0..<3, id: \.self) { i in
-                            RoundedRectangle(cornerRadius: 0)
-                                .fill(Color(.systemGray5))
-                                .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(.gray))
-                                .tag(i)
-                        }
-                    }
-                    .tabViewStyle(.page)
-                    .frame(height: 280)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
 
-                    Button(action: { isFavorited.toggle() }) {
-                        Image(systemName: isFavorited ? "heart.fill" : "heart")
-                            .font(.title3)
-                            .padding(10)
-                            .background(Color(.systemBackground).opacity(0.85))
-                            .clipShape(Circle())
-                    }
-                    .padding(14)
-                }
-
-                VStack(alignment: .leading, spacing: 16) {
-
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            WirePlaceholderBar(width: 200, height: 16)
-                            WirePlaceholderBar(width: 120, height: 13)
-                        }
-                        Spacer()
-                        Text("BHD 00.000")
-                            .font(.title3).bold()
-                            .foregroundColor(.primary)
-                    }
-
-                    HStack(spacing: 8) {
-                        WireTag(icon: "tag", label: "Category")
-                        WireTag(icon: "mappin", label: "Manama, Bahrain")
-                    }
-
-                    Divider()
-
-                    Text("Description")
-                        .font(.subheadline).bold()
-
-                    VStack(spacing: 6) {
-                        WirePlaceholderBar(width: .infinity, height: 12)
-                        WirePlaceholderBar(width: .infinity, height: 12)
-                        WirePlaceholderBar(width: 180, height: 12)
-                    }
-
-                    Divider()
-
-                    Text("Seller")
-                        .font(.subheadline).bold()
-
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(Color(.systemGray5))
-                            .frame(width: 48, height: 48)
-                            .overlay(Image(systemName: "person").foregroundColor(.gray))
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            WirePlaceholderBar(width: 120, height: 13)
-                            HStack(spacing: 3) {
-                                ForEach(0..<5) { _ in
-                                    Image(systemName: "star.fill")
-                                        .font(.caption2)
-                                        .foregroundColor(.gray)
+                    // ── Image carousel ───────────────────────────────────
+                    ZStack(alignment: .top) {
+                        TabView(selection: $currentImage) {
+                            ForEach(0..<3, id: \.self) { i in
+                                ZStack {
+                                    Color.rwSageTint
+                                    Image(systemName: "tshirt")
+                                        .font(.system(size: 60, weight: .thin))
+                                        .foregroundColor(Color.rwSage)
                                 }
-                                Text("(24 reviews)")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                .tag(i)
+                            }
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .frame(height: 340)
+
+                        HStack {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(Color.rwPrimary)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.9))
+                                    .clipShape(Circle())
+                            }
+                            Spacer()
+                            Button(action: { isFavorited.toggle() }) {
+                                Image(systemName: isFavorited ? "heart.fill" : "heart")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(isFavorited ? Color.rwPrimary : Color.rwTextSecondary)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.9))
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 52)
+
+                        HStack(spacing: 6) {
+                            ForEach(0..<3, id: \.self) { i in
+                                Circle()
+                                    .fill(currentImage == i ? Color.rwPrimary : Color.rwSage.opacity(0.4))
+                                    .frame(width: currentImage == i ? 8 : 5, height: currentImage == i ? 8 : 5)
+                            }
+                        }
+                        .padding(.top, 306)
+                    }
+
+                    VStack(alignment: .leading, spacing: 20) {
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Linen Blazer — Beige")
+                                .font(.rwTitle)
+                                .foregroundColor(Color.rwTextPrimary)
+
+                            HStack(alignment: .center) {
+                                Text("BHD 8.500")
+                                    .font(.rwDisplay)
+                                    .foregroundColor(Color.rwPrimary)
+                                Spacer()
+                                RWStarRating(rating: 4.8, size: 13)
+                                Text("4.8")
+                                    .font(.rwCaptionBold)
+                                    .foregroundColor(Color.rwTextSecondary)
                             }
                         }
 
-                        Spacer()
-
-                        Text("View Profile")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(.systemGray4)))
-                    }
-
-                    Divider()
-
-                    Text("Reviews")
-                        .font(.subheadline).bold()
-
-                    ForEach(mockReviews, id: \.self) { review in
-                        HStack(alignment: .top, spacing: 10) {
-                            Circle()
-                                .fill(Color(.systemGray5))
-                                .frame(width: 32, height: 32)
-                            VStack(alignment: .leading, spacing: 2) {
-                                WirePlaceholderBar(width: 80, height: 11)
-                                Text(review)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                RWTag(label: "Like New", icon: "sparkles")
+                                RWTag(label: "Size M")
+                                RWTag(label: "Zara")
+                                RWTag(label: "Tops")
+                                RWTag(label: "Manama", icon: "mappin")
                             }
                         }
-                        .padding(.vertical, 4)
-                    }
 
+                        RWDivider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Description")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+                            Text("Beautiful linen blazer in a warm beige tone. Barely worn, no stains or damage. Great for layering over a dress or with trousers. From a smoke-free home.")
+                                .font(.rwBody)
+                                .foregroundColor(Color.rwTextSecondary)
+                                .lineSpacing(4)
+                        }
+
+                        RWDivider()
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Seller")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+
+                            HStack(spacing: 14) {
+                                RWAvatar(initials: "SM", size: 50)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Sara M.")
+                                        .font(.rwBodyBold)
+                                        .foregroundColor(Color.rwTextPrimary)
+                                    HStack(spacing: 4) {
+                                        RWStarRating(rating: 4.8, size: 11)
+                                        Text("4.8 · 31 reviews")
+                                            .font(.rwMicro)
+                                            .foregroundColor(Color.rwTextSecondary)
+                                    }
+                                    Text("Member since 2023")
+                                        .font(.rwMicro)
+                                        .foregroundColor(Color.rwTextSecondary)
+                                }
+
+                                Spacer()
+
+                                NavigationLink(destination: SellerProfileView()) {
+                                    Text("View profile")
+                                        .font(.rwCaptionBold)
+                                        .foregroundColor(Color.rwPrimary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.rwPrimary, lineWidth: 1))
+                                }
+                            }
+                        }
+
+                        RWDivider()
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            RWSectionHeader(title: "Reviews", actionLabel: "See all")
+
+                            ForEach(mockReviews, id: \.0) { review in
+                                HStack(alignment: .top, spacing: 12) {
+                                    RWAvatar(initials: String(review.0.prefix(2)), size: 36)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Text(review.0)
+                                                .font(.rwCaptionBold)
+                                                .foregroundColor(Color.rwTextPrimary)
+                                            Spacer()
+                                            RWStarRating(rating: review.2, size: 10)
+                                        }
+                                        Text(review.1)
+                                            .font(.rwCaption)
+                                            .foregroundColor(Color.rwTextSecondary)
+                                            .lineSpacing(3)
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer().frame(height: 90)
+                    }
+                    .padding(20)
                 }
-                .padding(16)
             }
-        }
-        .navigationTitle("Item Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
 
             HStack(spacing: 12) {
-                WireframeButton(label: "Add to Favorites", style: .outline)
-                WireframeButton(label: "Contact Seller")
+                RWOutlineButton(label: "Save", icon: "heart")
+                    .frame(width: 110)
+                RWPrimaryButton(label: "Contact Seller", icon: "message")
             }
-            .padding(16)
-            .background(Color(.systemBackground))
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(
+                Color.rwBackground
+                    .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: -4)
+            )
         }
-    }
-}
-
-struct WirePlaceholderBar: View {
-    var width: CGFloat
-    var height: CGFloat
-    var body: some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(Color(.systemGray4))
-            .frame(maxWidth: width == .infinity ? .infinity : width)
-            .frame(height: height)
-    }
-}
-
-struct WireTag: View {
-    var icon: String
-    var label: String
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon).font(.caption2)
-            Text(label).font(.caption)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
-        .foregroundColor(.secondary)
+        .navigationBarHidden(true)
+        .ignoresSafeArea(edges: .top)
     }
 }
 

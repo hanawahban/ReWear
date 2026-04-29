@@ -3,83 +3,125 @@ import SwiftUI
 struct ProfileView: View {
 
     @State private var selectedTab = 0
-    let mockItems = Array(0..<4)
+
+    let myListings: [(String, String, String, String, Double)] = [
+        ("Linen Blazer", "BHD 8.500", "Manama", "Like New", 4.8),
+        ("Floral Dress", "BHD 5.000", "Manama", "Good", 4.5),
+        ("Leather Tote", "BHD 12.000", "Manama", "Like New", 5.0),
+        ("Denim Jacket", "BHD 7.500", "Manama", "Good", 4.2),
+    ]
+
+    let reviews = [
+        ("Lena K.", "Super fast, item as described. Would buy again!", 5.0),
+        ("Nour A.", "Lovely seller, very communicative.", 4.0),
+        ("Farah S.", "Great experience overall.", 5.0),
+    ]
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
+            ZStack {
+                Color.rwBackground.ignoresSafeArea()
 
-                    VStack(spacing: 10) {
-                        Circle()
-                            .fill(Color(.systemGray5))
-                            .frame(width: 80, height: 80)
-                            .overlay(Image(systemName: "person.fill").font(.title).foregroundColor(.gray))
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
 
-                        WirePlaceholderBar(width: 140, height: 16)
-                        WirePlaceholderBar(width: 100, height: 12)
-
-                        HStack(spacing: 3) {
-                            ForEach(0..<5) { _ in
-                                Image(systemName: "star.fill").font(.caption).foregroundColor(.gray)
+                        VStack(spacing: 14) {
+                            ZStack(alignment: .bottomTrailing) {
+                                RWAvatar(initials: "HW", size: 84)
+                                ZStack {
+                                    Circle().fill(Color.rwPrimary).frame(width: 26, height: 26)
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.white)
+                                }
                             }
-                            Text("4.8  (31 reviews)")
-                                .font(.caption).foregroundColor(.secondary)
+
+                            VStack(spacing: 4) {
+                                Text("Hana Wahban")
+                                    .font(.rwTitle)
+                                    .foregroundColor(Color.rwTextPrimary)
+                                Text("@HanaW · Manama, Bahrain")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                HStack(spacing: 4) {
+                                    RWStarRating(rating: 4.8, size: 13)
+                                    Text("4.8 · 31 reviews")
+                                        .font(.rwCaption)
+                                        .foregroundColor(Color.rwTextSecondary)
+                                }
+                            }
+
+                            HStack(spacing: 0) {
+                                RWStatCell(value: "12", label: "Listings")
+                                Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
+                                RWStatCell(value: "31", label: "Reviews")
+                                Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
+                                RWStatCell(value: "Mar 24", label: "Joined")
+                            }
+                            .background(Color.rwSurface)
+                            .cornerRadius(14)
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
+
+                            HStack(spacing: 10) {
+                                RWOutlineButton(label: "Edit Profile")
+                                RWOutlineButton(label: "Share", icon: "square.and.arrow.up")
+                                    .frame(width: 100)
+                            }
                         }
+                        .padding(20)
+
+                        RWDivider()
 
                         HStack(spacing: 0) {
-                            WireStatCell(value: "12", label: "Listings")
-                            Divider().frame(height: 32)
-                            WireStatCell(value: "31", label: "Reviews")
-                            Divider().frame(height: 32)
-                            WireStatCell(value: "Mar 2024", label: "Joined")
-                        }
-                        .padding(.top, 6)
-
-                        WireframeButton(label: "Edit Profile", style: .outline)
-                            .frame(width: 160)
-                    }
-                    .padding(20)
-
-                    Divider()
-
-                    Picker("Tab", selection: $selectedTab) {
-                        Text("My Listings").tag(0)
-                        Text("Reviews").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-
-                    if selectedTab == 0 {
-                        LazyVGrid(
-                            columns: [GridItem(.flexible()), GridItem(.flexible())],
-                            spacing: 14
-                        ) {
-                            ForEach(mockItems, id: \.self) { i in
-                                WireframeProductCard(index: i)
+                            ForEach(["My Listings", "Reviews"], id: \.self) { tab in
+                                let selected = (tab == "My Listings") ? selectedTab == 0 : selectedTab == 1
+                                Button(action: { selectedTab = tab == "My Listings" ? 0 : 1 }) {
+                                    VStack(spacing: 8) {
+                                        Text(tab)
+                                            .font(.rwBodyBold)
+                                            .foregroundColor(selected ? Color.rwPrimary : Color.rwTextSecondary)
+                                        Rectangle()
+                                            .fill(selected ? Color.rwPrimary : Color.clear)
+                                            .frame(height: 2)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
                             }
                         }
-                        .padding(.horizontal, 16)
-                    } else {
-                        // Reviews list
-                        VStack(spacing: 0) {
-                            ForEach(0..<3, id: \.self) { _ in
-                                WireReviewRow()
-                                Divider().padding(.leading, 56)
+                        .padding(.horizontal, 20)
+                        .overlay(alignment: .bottom) { RWDivider() }
+                        .padding(.bottom, 16)
+
+                        if selectedTab == 0 {
+                            LazyVGrid(
+                                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                                spacing: 14
+                            ) {
+                                ForEach(myListings, id: \.0) { item in
+                                    NavigationLink(destination: ProductDetailView()) {
+                                        RWProductCard(
+                                            title: item.0, price: item.1,
+                                            location: item.2, condition: item.3, rating: item.4
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(reviews, id: \.0) { r in
+                                    RWReviewRow(name: r.0, text: r.1, rating: r.2)
+                                    RWDivider().padding(.leading, 56)
+                                }
+                            }
+                            .padding(.horizontal, 20)
                         }
-                        .padding(.horizontal, 16)
                     }
                 }
             }
-            .navigationTitle("My Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Image(systemName: "gearshape").foregroundColor(.gray)
-                }
-            }
+            .navigationBarHidden(true)
         }
     }
 }
@@ -87,68 +129,121 @@ struct ProfileView: View {
 struct SellerProfileView: View {
 
     @State private var selectedTab = 0
-    let mockItems = Array(0..<4)
+    @Environment(\.dismiss) var dismiss
+
+    let listings: [(String, String, String, String, Double)] = [
+        ("Linen Blazer", "BHD 8.500", "Manama", "Like New", 4.8),
+        ("Floral Dress", "BHD 5.000", "Manama", "Good", 4.5),
+        ("Leather Tote", "BHD 12.000", "Manama", "Like New", 5.0),
+        ("Denim Jacket", "BHD 7.500", "Manama", "Good", 4.2),
+    ]
+
+    let reviews = [
+        ("Lena K.", "Lovely seller, very communicative.", 5.0),
+        ("Nour A.", "Item exactly as described.", 4.0),
+    ]
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
+        ZStack {
+            Color.rwBackground.ignoresSafeArea()
 
-                VStack(spacing: 10) {
-                    Circle()
-                        .fill(Color(.systemGray5))
-                        .frame(width: 72, height: 72)
-                        .overlay(Image(systemName: "person.fill").font(.title2).foregroundColor(.gray))
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
 
-                    WirePlaceholderBar(width: 130, height: 15)
-                    WirePlaceholderBar(width: 90, height: 11)
-
-                    HStack(spacing: 3) {
-                        ForEach(0..<5) { _ in
-                            Image(systemName: "star.fill").font(.caption).foregroundColor(.gray)
+                    // Back button
+                    HStack {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color.rwPrimary)
                         }
-                        Text("4.8  (31 reviews)").font(.caption).foregroundColor(.secondary)
+                        Spacer()
+                        Image(systemName: "ellipsis")
+                            .foregroundColor(Color.rwTextSecondary)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 12)
 
-                    HStack(spacing: 10) {
-                        WireframeButton(label: "Message Seller")
-                        WireframeButton(label: "Follow", style: .outline)
-                    }
-                }
-                .padding(20)
+                    VStack(spacing: 12) {
+                        RWAvatar(initials: "LK", size: 72)
+                        VStack(spacing: 4) {
+                            Text("Lena K.")
+                                .font(.rwTitle)
+                                .foregroundColor(Color.rwTextPrimary)
+                            Text("@lenak · Riffa, Bahrain")
+                                .font(.rwCaption)
+                                .foregroundColor(Color.rwTextSecondary)
+                            HStack(spacing: 4) {
+                                RWStarRating(rating: 4.6, size: 13)
+                                Text("4.6 · 18 reviews")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwTextSecondary)
+                            }
+                        }
 
-                Divider()
+                        HStack(spacing: 0) {
+                            RWStatCell(value: "8", label: "Listings")
+                            Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
+                            RWStatCell(value: "18", label: "Reviews")
+                            Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
+                            RWStatCell(value: "Jan 24", label: "Joined")
+                        }
+                        .background(Color.rwSurface)
+                        .cornerRadius(14)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
-                Picker("Tab", selection: $selectedTab) {
-                    Text("Listings").tag(0)
-                    Text("Reviews").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-
-                if selectedTab == 0 {
-                    LazyVGrid(
-                        columns: [GridItem(.flexible()), GridItem(.flexible())],
-                        spacing: 14
-                    ) {
-                        ForEach(mockItems, id: \.self) { i in
-                            WireframeProductCard(index: i)
+                        HStack(spacing: 10) {
+                            RWPrimaryButton(label: "Message", icon: "message")
+                            RWOutlineButton(label: "Follow")
                         }
                     }
-                    .padding(.horizontal, 16)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            WireReviewRow()
-                            Divider().padding(.leading, 56)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+
+                    RWDivider()
+
+                    HStack(spacing: 0) {
+                        ForEach(["Listings", "Reviews"], id: \.self) { tab in
+                            let selected = (tab == "Listings") ? selectedTab == 0 : selectedTab == 1
+                            Button(action: { selectedTab = tab == "Listings" ? 0 : 1 }) {
+                                VStack(spacing: 8) {
+                                    Text(tab).font(.rwBodyBold)
+                                        .foregroundColor(selected ? Color.rwPrimary : Color.rwTextSecondary)
+                                    Rectangle().fill(selected ? Color.rwPrimary : Color.clear).frame(height: 2)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
+                    .overlay(alignment: .bottom) { RWDivider() }
+                    .padding(.bottom, 16)
+
+                    if selectedTab == 0 {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                            ForEach(listings, id: \.0) { item in
+                                NavigationLink(destination: ProductDetailView()) {
+                                    RWProductCard(title: item.0, price: item.1, location: item.2, condition: item.3, rating: item.4)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(reviews, id: \.0) { r in
+                                RWReviewRow(name: r.0, text: r.1, rating: r.2)
+                                RWDivider().padding(.leading, 56)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
                 }
             }
         }
-        .navigationTitle("Seller Profile")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
     }
 }
 
@@ -156,115 +251,137 @@ struct ReviewView: View {
 
     @State private var selectedRating = 0
     @State private var reviewText = ""
+    @Environment(\.dismiss) var dismiss
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
+            ZStack {
+                Color.rwBackground.ignoresSafeArea()
 
-                    // ── Transaction summary ──────────────────────────────
-                    HStack(spacing: 12) {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color(.systemGray5))
-                            .frame(width: 60, height: 60)
-                            .overlay(Image(systemName: "photo").foregroundColor(.gray))
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            WirePlaceholderBar(width: 150, height: 13)
-                            WirePlaceholderBar(width: 80, height: 11)
+                        HStack(spacing: 14) {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.rwSageTint)
+                                .frame(width: 64, height: 64)
+                                .overlay(Image(systemName: "tshirt").font(.system(size: 22, weight: .thin)).foregroundColor(Color.rwSage))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Linen Blazer — Beige")
+                                    .font(.rwBodyBold)
+                                    .foregroundColor(Color.rwTextPrimary)
+                                Text("BHD 8.500")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwPrimary)
+                                Text("Sold by Sara M.")
+                                    .font(.rwMicro)
+                                    .foregroundColor(Color.rwTextSecondary)
+                            }
+                            Spacer()
                         }
-                        Spacer()
-                    }
-                    .padding(14)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                        .padding(14)
+                        .background(Color.rwSurface)
+                        .cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.rwBorder, lineWidth: 1))
 
-                    // ── Star selector ────────────────────────────────────
-                    VStack(spacing: 10) {
-                        Text("Rate your experience")
-                            .font(.subheadline).bold()
+                        RWDivider()
 
-                        HStack(spacing: 12) {
-                            ForEach(1..<6) { star in
-                                Image(systemName: selectedRating >= star ? "star.fill" : "star")
-                                    .font(.title)
-                                    .foregroundColor(.gray)
-                                    .onTapGesture { selectedRating = star }
+                        VStack(spacing: 14) {
+                            Text("How was your experience?")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+
+                            HStack(spacing: 16) {
+                                ForEach(1..<6) { star in
+                                    Button(action: { withAnimation { selectedRating = star } }) {
+                                        Image(systemName: selectedRating >= star ? "star.fill" : "star")
+                                            .font(.system(size: 32))
+                                            .foregroundColor(selectedRating >= star ? Color.rwGold : Color.rwBorder)
+                                            .scaleEffect(selectedRating == star ? 1.15 : 1.0)
+                                    }
+                                }
+                            }
+
+                            let labels = ["", "Poor", "Fair", "Good", "Great", "Excellent"]
+                            if selectedRating > 0 {
+                                Text(labels[selectedRating])
+                                    .font(.rwBodyBold)
+                                    .foregroundColor(Color.rwPrimary)
                             }
                         }
 
-                        Text(selectedRating == 0 ? "Tap to rate" : "\(selectedRating) star\(selectedRating > 1 ? "s" : "")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                        RWDivider()
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Write a review (optional)")
-                            .font(.subheadline).bold()
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Leave a comment (optional)")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
 
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(.systemGray6))
-                            .frame(height: 120)
-                            .overlay(
+                            ZStack(alignment: .topLeading) {
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color.rwSageTint)
+                                    .frame(height: 130)
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
                                 Text("Share your experience with this seller...")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                    .padding(14),
-                                alignment: .topLeading
-                            )
-                    }
+                                    .font(.rwBody)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                    .padding(14)
+                            }
+                        }
 
-                    WireframeButton(label: "Submit Review")
+                        RWPrimaryButton(label: "Submit Review")
+                            .padding(.bottom, 30)
+                    }
+                    .padding(20)
                 }
-                .padding(16)
             }
-            .navigationTitle("Rate Seller")
+            .navigationTitle("Rate your experience")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.rwBackground, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Cancel").foregroundColor(.gray)
+                    Button("Cancel") { dismiss() }
+                        .font(.rwBody)
+                        .foregroundColor(Color.rwTextSecondary)
                 }
             }
         }
     }
 }
 
-struct WireStatCell: View {
+struct RWStatCell: View {
     var value: String
     var label: String
     var body: some View {
         VStack(spacing: 2) {
-            Text(value).font(.subheadline).bold()
-            Text(label).font(.caption2).foregroundColor(.secondary)
+            Text(value).font(.rwBodyBold).foregroundColor(Color.rwTextPrimary)
+            Text(label).font(.rwMicro).foregroundColor(Color.rwTextSecondary)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct WireReviewRow: View {
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Circle()
-                .fill(Color(.systemGray5))
-                .frame(width: 36, height: 36)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    WirePlaceholderBar(width: 90, height: 12)
-                    Spacer()
-                    HStack(spacing: 2) {
-                        ForEach(0..<5) { _ in
-                            Image(systemName: "star.fill").font(.system(size: 9)).foregroundColor(.gray)
-                        }
-                    }
-                }
-                WirePlaceholderBar(width: .infinity, height: 11)
-                WirePlaceholderBar(width: 180, height: 11)
-            }
-        }
         .padding(.vertical, 12)
     }
 }
 
+struct RWReviewRow: View {
+    var name: String
+    var text: String
+    var rating: Double
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            RWAvatar(initials: String(name.prefix(2)), size: 38)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(name).font(.rwCaptionBold).foregroundColor(Color.rwTextPrimary)
+                    Spacer()
+                    RWStarRating(rating: rating, size: 11)
+                }
+                Text(text).font(.rwCaption).foregroundColor(Color.rwTextSecondary).lineSpacing(3)
+            }
+        }
+        .padding(.vertical, 14)
+    }
+}
+
 #Preview("My Profile") { ProfileView() }
-#Preview("Seller Profile") { NavigationStack { SellerProfileView() } }
+#Preview("Seller Profile") { SellerProfileView() }
 #Preview("Review") { ReviewView() }

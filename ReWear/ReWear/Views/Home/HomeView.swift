@@ -2,129 +2,141 @@ import SwiftUI
 
 struct HomeView: View {
 
-    let categories = ["All", "Electronics", "Clothing", "Furniture", "Books", "Vehicles", "Other"]
+    let categories = ["All", "Tops", "Dresses", "Outerwear", "Bottoms", "Shoes", "Bags", "Accessories"]
     @State private var selectedCategory = "All"
     @State private var searchText = ""
 
-    // Mock product count for wireframe layout
-    let mockItems = Array(0..<8)
+    let mockItems: [(String, String, String, String, Double)] = [
+        ("Linen Blazer", "BHD 8.500", "Manama", "Like New", 4.8),
+        ("Floral Midi Dress", "BHD 5.000", "Riffa", "Good", 4.5),
+        ("Leather Tote Bag", "BHD 12.000", "Juffair", "Like New", 5.0),
+        ("Denim Jacket", "BHD 7.500", "Muharraq", "Good", 4.2),
+        ("Silk Blouse", "BHD 4.000", "Manama", "Fair", 3.9),
+        ("Wool Coat", "BHD 18.000", "Saar", "Like New", 4.9),
+    ]
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            ZStack(alignment: .top) {
+                Color.rwBackground.ignoresSafeArea()
 
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    Text("Search products...")
-                        .foregroundColor(.gray)
-                        .font(.subheadline)
-                    Spacer()
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundColor(.gray)
-                }
-                .padding(12)
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                VStack(spacing: 0) {
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(categories, id: \.self) { cat in
-                            Text(cat)
-                                .font(.caption)
-                                .fontWeight(selectedCategory == cat ? .semibold : .regular)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(
-                                    selectedCategory == cat
-                                    ? Color(.systemGray2)
-                                    : Color(.systemGray6)
-                                )
-                                .cornerRadius(20)
-                                .onTapGesture { selectedCategory = cat }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                }
-                .padding(.bottom, 8)
-
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                        ForEach(mockItems, id: \.self) { i in
-                            NavigationLink(destination: ProductDetailView()) {
-                                WireframeProductCard(index: i)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("R E W E A R")
+                                .font(.rwDisplay)
+                                .foregroundColor(Color.rwPrimary)
+                                .kerning(4)
+                            HStack(spacing: 4) {
+                                Image(systemName: "mappin.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.rwSage)
+                                Text("Manama, Bahrain")
+                                    .font(.rwMicro)
+                                    .foregroundColor(Color.rwTextSecondary)
                             }
-                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                        Button(action: {}) {
+                            Image(systemName: "bell")
+                                .font(.system(size: 18))
+                                .foregroundColor(Color.rwPrimary)
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 14)
+
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(Color.rwTextSecondary)
+                            .font(.system(size: 15))
+                        Text(searchText.isEmpty ? "Search for pieces..." : searchText)
+                            .font(.rwBody)
+                            .foregroundColor(searchText.isEmpty ? Color.rwTextSecondary : Color.rwTextPrimary)
+                        Spacer()
+                        Image(systemName: "slider.horizontal.3")
+                            .foregroundColor(Color.rwPrimary)
+                            .font(.system(size: 15))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color.rwSurface)
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 14)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(categories, id: \.self) { cat in
+                                RWCategoryChip(
+                                    label: cat,
+                                    isSelected: selectedCategory == cat,
+                                    action: { selectedCategory = cat }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 16)
+
+                    ZStack(alignment: .bottomLeading) {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.rwPrimary)
+                            .frame(height: 110)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("New arrivals this week")
+                                .font(.rwHeading)
+                                .foregroundColor(.white)
+                            Text("24 fresh pieces added")
+                                .font(.rwCaption)
+                                .foregroundColor(Color.rwSage)
+                        }
+                        .padding(18)
+
+                        HStack {
+                            Spacer()
+                            Image(systemName: "arrow.3.trianglepath")
+                                .font(.system(size: 40, weight: .thin))
+                                .foregroundColor(Color.rwSage.opacity(0.3))
+                                .padding(.trailing, 20)
+                        }
+                    }
+                    .padding(.horizontal, 20)
                     .padding(.bottom, 20)
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            RWSectionHeader(title: "Recent listings", actionLabel: "See all")
+                                .padding(.horizontal, 20)
+
+                            LazyVGrid(
+                                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                                spacing: 14
+                            ) {
+                                ForEach(mockItems, id: \.0) { item in
+                                    NavigationLink(destination: ProductDetailView()) {
+                                        RWProductCard(
+                                            title: item.0,
+                                            price: item.1,
+                                            location: item.2,
+                                            condition: item.3,
+                                            rating: item.4
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
+                        }
+                    }
                 }
             }
-            .navigationTitle("ReWear")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Image(systemName: "location.fill")
-                        .foregroundColor(.gray)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Image(systemName: "bell")
-                        .foregroundColor(.gray)
-                }
-            }
+            .navigationBarHidden(true)
         }
-    }
-}
-
-struct WireframeProductCard: View {
-    let index: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-
-            // Image placeholder
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray5))
-                .frame(height: 140)
-                .overlay(Image(systemName: "photo").foregroundColor(.gray))
-
-            // Title placeholder
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color(.systemGray4))
-                .frame(height: 12)
-
-            // Price placeholder
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color(.systemGray4))
-                .frame(width: 60, height: 12)
-
-            // Location + rating row
-            HStack {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                Text("Location")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                Spacer()
-                Image(systemName: "star.fill")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                Text("4.5")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-            }
-        }
-        .padding(10)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray5), lineWidth: 1)
-        )
     }
 }
 
