@@ -1,8 +1,11 @@
 import SwiftUI
+import PhotosUI
 
 struct ProfileView: View {
 
     @State private var selectedTab = 0
+    @State private var selectedPhoto: PhotosPickerItem? = nil
+    @State private var profileImage: UIImage? = nil
 
     let myListings: [(String, String, String, String, Double)] = [
         ("Linen Blazer", "BHD 8.500", "Manama", "Like New", 4.8),
@@ -26,13 +29,35 @@ struct ProfileView: View {
                     VStack(spacing: 0) {
 
                         VStack(spacing: 14) {
-                            ZStack(alignment: .bottomTrailing) {
-                                RWAvatar(initials: "HW", size: 84)
-                                ZStack {
-                                    Circle().fill(Color.rwPrimary).frame(width: 26, height: 26)
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.white)
+
+                            // ── Avatar with photo picker ──────────────────
+                            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                ZStack(alignment: .bottomTrailing) {
+                                    if let profileImage {
+                                        Image(uiImage: profileImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 84, height: 84)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Color.rwBorder, lineWidth: 1))
+                                    } else {
+                                        RWAvatar(initials: "HW", size: 84)
+                                    }
+
+                                    ZStack {
+                                        Circle().fill(Color.rwPrimary).frame(width: 26, height: 26)
+                                        Image(systemName: "camera.fill")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                            }
+                            .onChange(of: selectedPhoto) { newItem in
+                                Task {
+                                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                                       let image = UIImage(data: data) {
+                                        profileImage = image
+                                    }
                                 }
                             }
 
@@ -307,7 +332,6 @@ struct ReviewView: View {
                 Color.rwBackground.ignoresSafeArea()
 
                 if showThankYou {
-                    // ── Thank you screen ─────────────────────────────────
                     VStack(spacing: 28) {
                         Spacer()
 
@@ -331,7 +355,6 @@ struct ReviewView: View {
                                 .lineSpacing(4)
                         }
 
-                        // Rating summary
                         HStack(spacing: 8) {
                             RWStarRating(rating: Double(selectedRating), size: 20)
                             Text("\(selectedRating) star\(selectedRating > 1 ? "s" : "")")
@@ -355,7 +378,6 @@ struct ReviewView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 24) {
 
-                            // Transaction summary
                             HStack(spacing: 14) {
                                 RoundedRectangle(cornerRadius: 10)
                                     .fill(Color.rwSageTint)
@@ -385,7 +407,6 @@ struct ReviewView: View {
 
                             RWDivider()
 
-                            // Star selector
                             VStack(spacing: 14) {
                                 Text("How was your experience?")
                                     .font(.rwHeading)
@@ -418,7 +439,6 @@ struct ReviewView: View {
 
                             RWDivider()
 
-                            // Written review
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("Leave a comment (optional)")
                                     .font(.rwHeading)
@@ -451,7 +471,6 @@ struct ReviewView: View {
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }
 
-                            // Submit button
                             RWPrimaryButton(
                                 label: isSubmitting ? "Submitting..." : "Submit Review",
                                 action: handleSubmit
@@ -482,7 +501,6 @@ struct ReviewView: View {
     func handleSubmit() {
         guard selectedRating > 0 else { return }
         isSubmitting = true
-        // TEAMMATE: Replace with ReviewViewModel.submitReview()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isSubmitting = false
             withAnimation(.easeInOut(duration: 0.3)) {
