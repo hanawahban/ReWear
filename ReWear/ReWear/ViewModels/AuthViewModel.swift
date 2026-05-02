@@ -21,20 +21,25 @@
 //    }
 //
 //    // Sign Up
-//    func signUp(name: String, email: String, password: String) {
-//        isLoading = true
-//        errorMessage = nil
-//
-//        //authentication stuff
-//        
-//       // Mock
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-//            self.currentUser = RWUser.mock
-//            self.isLoggedIn = true
-//            self.isLoading = false
-//        }
-//    }
-//
+func signUp(name: String, email: String, password: String) {
+    isLoading = true
+    let db = Firestore.firestore()
+
+    Auth.auth().createUser(withEmail: email, password: password) { result, error in
+        if let user = result?.user {
+            db.collection("users").document(user.uid).setData([
+                "id": user.uid,
+                "name": name,
+                "email": email,
+                "rating": 1.0,
+                "joinDate": Timestamp()
+            ])
+            self.isLoggedIn = true
+        }
+        self.isLoading = false
+    }
+}
+
 //    // login
 //    func logIn(email: String, password: String) {
 //        isLoading = true
