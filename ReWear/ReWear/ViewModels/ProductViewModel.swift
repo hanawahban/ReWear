@@ -24,7 +24,8 @@
 //    func fetchProducts() {
 //        isLoading = true
 //
-//        // fetch here
+//        let db = Firestore.firestore()
+          db.collection("listings").getDocuments { snapshot, error in }
 //
 //       // Mock
 //        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
