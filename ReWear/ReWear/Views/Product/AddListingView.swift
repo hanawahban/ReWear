@@ -2,6 +2,11 @@ import SwiftUI
 
 struct AddListingView: View {
 
+    @EnvironmentObject var productViewModel: ProductViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var newlyCreatedProduct: Product? = nil
+    @State private var navigateToDetail = false
+
     @State private var title = ""
     @State private var description = ""
     @State private var price = ""
@@ -33,7 +38,6 @@ struct AddListingView: View {
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 10) {
-                                    // Add button
                                     RoundedRectangle(cornerRadius: 12)
                                         .fill(Color.rwSageTint)
                                         .frame(width: 88, height: 88)
@@ -78,7 +82,6 @@ struct AddListingView: View {
 
                             RWTextField(placeholder: "Brand (optional)", text: $brand, icon: "tag")
 
-                            // Description
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Description")
                                     .font(.rwCaption)
@@ -95,10 +98,8 @@ struct AddListingView: View {
                                 }
                             }
 
-                            // Category
                             RWPickerRow(label: "Category", value: selectedCategory.isEmpty ? "Select category" : selectedCategory)
 
-                            // Condition
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Condition")
                                     .font(.rwCaption)
@@ -170,8 +171,38 @@ struct AddListingView: View {
 
                         RWDivider()
 
-                        RWPrimaryButton(label: "Post Listing")
-                            .padding(.bottom, 30)
+                        RWPrimaryButton(label: "Post Listing") {
+                            print("Post Listing button pressed")
+                            guard let priceValue = Double(price) else {
+                                print("Invalid price input")
+                                return
+                            }
+
+                            productViewModel.postProduct(
+                                title: title,
+                                description: description,
+                                price: priceValue,
+                                category: selectedCategory,
+                                condition: selectedCondition,
+                                size: selectedSize,
+                                brand: brand,
+                                location: "Manama",
+                                coord: (26.0667, 50.5577),
+                                images: []
+                            ) { success in
+                                print("Post completion called: \(success)")
+                                if success {
+                                    if let created = productViewModel.products.first {
+                                        newlyCreatedProduct = created
+                                        navigateToDetail = true
+                                        print("Navigating to product detail for \(created.title)")
+                                    }
+                                } else {
+                                    print("Product upload failed")
+                                }
+                            }
+                        }
+                        .padding(.bottom, 30)
                     }
                     .padding(20)
                 }
@@ -185,6 +216,11 @@ struct AddListingView: View {
                     Button("Cancel") {}
                         .font(.rwBody)
                         .foregroundColor(Color.rwTextSecondary)
+                }
+            }
+            .navigationDestination(isPresented: $navigateToDetail) {
+                if let product = newlyCreatedProduct {
+                    ProductDetailView(product: product)
                 }
             }
         }
