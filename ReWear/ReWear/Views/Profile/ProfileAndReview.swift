@@ -3,6 +3,8 @@ import PhotosUI
 
 struct ProfileView: View {
 
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
     @State private var selectedTab = 0
     @State private var selectedPhoto: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
@@ -40,8 +42,19 @@ struct ProfileView: View {
                                             .frame(width: 84, height: 84)
                                             .clipShape(Circle())
                                             .overlay(Circle().stroke(Color.rwBorder, lineWidth: 1))
+                                    } else if let imageURL = authViewModel.currentUser?.profileImageURL,
+                                              !imageURL.isEmpty,
+                                              let url = URL(string: imageURL) {
+                                        AsyncImage(url: url) { image in
+                                            image.resizable().scaledToFill()
+                                        } placeholder: {
+                                            RWAvatar(initials: String(authViewModel.currentUser?.name.prefix(2) ?? ""), size: 84)
+                                        }
+                                        .frame(width: 84, height: 84)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.rwBorder, lineWidth: 1))
                                     } else {
-                                        RWAvatar(initials: "HW", size: 84)
+                                        RWAvatar(initials: String(authViewModel.currentUser?.name.prefix(2) ?? ""), size: 84)
                                     }
 
                                     ZStack {
@@ -61,31 +74,37 @@ struct ProfileView: View {
                                 }
                             }
 
-                            VStack(spacing: 4) {
-                                Text("Hana Wahban")
-                                    .font(.rwTitle)
-                                    .foregroundColor(Color.rwTextPrimary)
-                                Text("@HanaW · Manama, Bahrain")
-                                    .font(.rwCaption)
-                                    .foregroundColor(Color.rwTextSecondary)
-                                HStack(spacing: 4) {
-                                    RWStarRating(rating: 4.8, size: 13)
-                                    Text("4.8 · 31 reviews")
+                            if let user = authViewModel.currentUser {
+                                VStack(spacing: 4) {
+                                    Text(user.name.isEmpty ? "Unnamed User" : user.name)
+                                        .font(.rwTitle)
+                                        .foregroundColor(Color.rwTextPrimary)
+                                    Text("@\(user.name.replacingOccurrences(of: " ", with: "")) · \(user.location.isEmpty ? "Unknown" : user.location)")
                                         .font(.rwCaption)
                                         .foregroundColor(Color.rwTextSecondary)
+                                    HStack(spacing: 4) {
+                                        RWStarRating(rating: user.rating, size: 13)
+                                        Text(String(format: "%.1f · %d reviews", user.rating, user.reviewCount))
+                                            .font(.rwCaption)
+                                            .foregroundColor(Color.rwTextSecondary)
+                                    }
                                 }
-                            }
 
-                            HStack(spacing: 0) {
-                                RWStatCell(value: "12", label: "Listings")
-                                Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
-                                RWStatCell(value: "31", label: "Reviews")
-                                Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
-                                RWStatCell(value: "Mar 24", label: "Joined")
+                                HStack(spacing: 0) {
+                                    RWStatCell(value: "\(user.listingCount)", label: "Listings")
+                                    Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
+                                    RWStatCell(value: "\(user.reviewCount)", label: "Reviews")
+                                    Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
+                                    RWStatCell(value: formattedJoinDate(user.joinedDate), label: "Joined")
+                                }
+                                .background(Color.rwSurface)
+                                .cornerRadius(14)
+                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
+                            } else {
+                                Text("Loading user data...")
+                                    .font(.rwBody)
+                                    .foregroundColor(Color.rwTextSecondary)
                             }
-                            .background(Color.rwSurface)
-                            .cornerRadius(14)
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
                             HStack(spacing: 10) {
                                 RWOutlineButton(label: "Edit Profile")
@@ -108,7 +127,9 @@ struct ProfileView: View {
                             }
                             .buttonStyle(.plain)
 
-                            Button(action: {}) {
+                            Button {
+                                authViewModel.logOut()
+                            } label: {
                                 HStack {
                                     Image(systemName: "rectangle.portrait.and.arrow.right")
                                         .font(.system(size: 15))
@@ -121,7 +142,10 @@ struct ProfileView: View {
                                 .padding(14)
                                 .background(Color.rwSurface)
                                 .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.rwBorder, lineWidth: 1)
+                                )
                             }
                         }
                         .padding(.horizontal, 20)
@@ -182,6 +206,12 @@ struct ProfileView: View {
             }
             .navigationBarHidden(true)
         }
+    }
+
+    private func formattedJoinDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM yy"
+        return formatter.string(from: date)
     }
 }
 
