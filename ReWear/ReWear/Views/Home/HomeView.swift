@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject var productViewModel: ProductViewModel
 
     @State private var searchText = ""
     @State private var selectedCategory = "All"
@@ -12,29 +13,22 @@ struct HomeView: View {
 
     let categories = ["All", "Tops", "Dresses", "Outerwear", "Bottoms", "Shoes", "Bags", "Accessories"]
 
-    let allProducts = Product.mockList
-
     var filteredProducts: [Product] {
-        allProducts.filter { product in
+        var list = productViewModel.products
 
-            let categoryMatch = selectedCategory == "All" || product.category == selectedCategory
-
-            let searchMatch = searchText.isEmpty ||
-                product.title.localizedCaseInsensitiveContains(searchText) ||
-                product.brand.localizedCaseInsensitiveContains(searchText) ||
-                product.category.localizedCaseInsensitiveContains(searchText)
-
-            // Condition filter
-            let conditionMatch = selectedCondition == "Any" || product.condition == selectedCondition
-
-            // Size filter
-            let sizeMatch = selectedSize == "Any" || product.size == selectedSize
-
-            // Price filter
-            let priceMatch = product.price >= minPrice && product.price <= maxPrice
-
-            return categoryMatch && searchMatch && conditionMatch && sizeMatch && priceMatch
+        let categoryMatch: (Product) -> Bool = { selectedCategory == "All" || $0.category == selectedCategory }
+        let searchMatch: (Product) -> Bool = {
+            searchText.isEmpty ||
+            $0.title.localizedCaseInsensitiveContains(searchText) ||
+            $0.brand.localizedCaseInsensitiveContains(searchText) ||
+            $0.category.localizedCaseInsensitiveContains(searchText)
         }
+        let conditionMatch: (Product) -> Bool = { selectedCondition == "Any" || $0.condition == selectedCondition }
+        let sizeMatch: (Product) -> Bool = { selectedSize == "Any" || $0.size == selectedSize }
+        let priceMatch: (Product) -> Bool = { $0.price >= minPrice && $0.price <= maxPrice }
+
+        list = list.filter { categoryMatch($0) && searchMatch($0) && conditionMatch($0) && sizeMatch($0) && priceMatch($0) }
+        return list
     }
 
     var activeFilterCount: Int {
@@ -53,6 +47,7 @@ struct HomeView: View {
 
                 VStack(spacing: 0) {
 
+                    // Header
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("R E W E A R")
@@ -79,6 +74,7 @@ struct HomeView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 14)
 
+                    // Search
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(Color.rwTextSecondary)
@@ -124,17 +120,14 @@ struct HomeView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 14)
 
+                    // Categories
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(categories, id: \.self) { cat in
                                 RWCategoryChip(
                                     label: cat,
                                     isSelected: selectedCategory == cat,
-                                    action: {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            selectedCategory = cat
-                                        }
-                                    }
+                                    action: { selectedCategory = cat }
                                 )
                             }
                         }
@@ -142,107 +135,52 @@ struct HomeView: View {
                     }
                     .padding(.bottom, 16)
 
-                    if searchText.isEmpty && activeFilterCount == 0 {
-                        ZStack(alignment: .bottomLeading) {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.rwPrimary)
-                                .frame(height: 110)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("New arrivals this week")
-                                    .font(.rwHeading)
-                                    .foregroundColor(.white)
-                                Text("24 fresh pieces added")
-                                    .font(.rwCaption)
+                    // Listings grid
+                    if productViewModel.isLoading {
+                        ProgressView("Loading listings...")
+                            .padding(.top, 50)
+                    } else if filteredProducts.isEmpty {
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle().fill(Color.rwSageTint).frame(width: 90, height: 90)
+                                Image(systemName: "tshirt")
+                                    .font(.system(size: 36, weight: .thin))
                                     .foregroundColor(Color.rwSage)
                             }
-                            .padding(18)
-
-                            HStack {
-                                Spacer()
-                                Image(systemName: "arrow.3.trianglepath")
-                                    .font(.system(size: 40, weight: .thin))
-                                    .foregroundColor(Color.rwSage.opacity(0.3))
-                                    .padding(.trailing, 20)
-                            }
+                            Text("No listings found")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+                            Text("Try adjusting your filters.")
+                                .font(.rwBody)
+                                .foregroundColor(Color.rwTextSecondary)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
-                        .transition(.opacity)
-                    }
-
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-
-                            HStack {
-                                if searchText.isEmpty && activeFilterCount == 0 {
-                                    RWSectionHeader(title: "Recent listings", actionLabel: "See all")
-                                } else {
-                                    Text("\(filteredProducts.count) result\(filteredProducts.count == 1 ? "" : "s")")
-                                        .font(.rwCaption)
-                                        .foregroundColor(Color.rwTextSecondary)
-
-                                    Spacer()
-
-                                    if activeFilterCount > 0 {
-                                        Button(action: clearFilters) {
-                                            Text("Clear filters")
-                                                .font(.rwCaptionBold)
-                                                .foregroundColor(Color.rwPrimary)
-                                        }
+                        .padding(.top, 80)
+                    } else {
+                        ScrollView {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                                ForEach(filteredProducts) { product in
+                                    NavigationLink(destination: ProductDetailView(product: product)) {
+                                        RWProductCard(
+                                            title: product.title,
+                                            price: product.formattedPrice,
+                                            location: product.location,
+                                            condition: product.condition,
+                                            rating: product.rating
+                                        )
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.horizontal, 20)
-
-                            if filteredProducts.isEmpty {
-                                VStack(spacing: 16) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.rwSageTint)
-                                            .frame(width: 90, height: 90)
-                                        Image(systemName: "magnifyingglass")
-                                            .font(.system(size: 36, weight: .thin))
-                                            .foregroundColor(Color.rwSage)
-                                    }
-                                    Text("No pieces found")
-                                        .font(.rwHeading)
-                                        .foregroundColor(Color.rwTextPrimary)
-                                    Text("Try adjusting your search\nor clearing your filters.")
-                                        .font(.rwBody)
-                                        .foregroundColor(Color.rwTextSecondary)
-                                        .multilineTextAlignment(.center)
-                                        .lineSpacing(4)
-                                    RWOutlineButton(label: "Clear filters", action: clearFilters)
-                                        .frame(width: 160)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 40)
-                            } else {
-                                LazyVGrid(
-                                    columns: [GridItem(.flexible()), GridItem(.flexible())],
-                                    spacing: 14
-                                ) {
-                                    ForEach(filteredProducts) { product in
-                                        NavigationLink(destination: ProductDetailView()) {
-                                            RWProductCard(
-                                                title: product.title,
-                                                price: product.formattedPrice,
-                                                location: product.location,
-                                                condition: product.condition,
-                                                rating: product.rating
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 20)
-                            }
+                            .padding(.bottom, 20)
                         }
                     }
                 }
             }
             .navigationBarHidden(true)
+            .onAppear {
+                productViewModel.fetchProducts()
+            }
             .sheet(isPresented: $showFilterSheet) {
                 SearchFilterView(
                     selectedCategory: $selectedCategory,
@@ -254,17 +192,9 @@ struct HomeView: View {
             }
         }
     }
-
-    func clearFilters() {
-        withAnimation {
-            searchText = ""
-            selectedCategory = "All"
-            selectedCondition = "Any"
-            selectedSize = "Any"
-            minPrice = 0
-            maxPrice = 100
-        }
-    }
 }
 
-#Preview { HomeView() }
+#Preview {
+    HomeView()
+        .environmentObject(ProductViewModel())
+}
