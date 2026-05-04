@@ -4,9 +4,9 @@ struct ProductDetailView: View {
 
     var product: Product = .mock
 
+    @StateObject private var reviewVM = ReviewViewModel()
     @State private var isFavorited = false
     @State private var currentImage = 0
-    @State private var showChat = false
     @State private var showReview = false
     @Environment(\.dismiss) var dismiss
 
@@ -18,21 +18,40 @@ struct ProductDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
 
                     ZStack(alignment: .top) {
-                        TabView(selection: $currentImage) {
-                            ForEach(0..<3, id: \.self) { i in
-                                ZStack {
-                                    Color.rwSageTint
-                                    Image(systemName: "tshirt")
-                                        .font(.system(size: 60, weight: .thin))
-                                        .foregroundColor(Color.rwSage)
+                        if product.imageURLs.isEmpty {
+                            TabView(selection: $currentImage) {
+                                ForEach(0..<3, id: \.self) { i in
+                                    ZStack {
+                                        Color.rwSageTint
+                                        Image(systemName: "tshirt")
+                                            .font(.system(size: 60, weight: .thin))
+                                            .foregroundColor(Color.rwSage)
+                                    }
+                                    .tag(i)
                                 }
-                                .tag(i)
                             }
+                            .tabViewStyle(.page(indexDisplayMode: .never))
+                            .frame(height: 340)
+                        } else {
+                            TabView(selection: $currentImage) {
+                                ForEach(Array(product.imageURLs.enumerated()), id: \.offset) { index, url in
+                                    AsyncImage(url: URL(string: url)) { image in
+                                        image.resizable().scaledToFill()
+                                    } placeholder: {
+                                        ZStack {
+                                            Color.rwSageTint
+                                            ProgressView()
+                                        }
+                                    }
+                                    .frame(height: 340)
+                                    .clipped()
+                                    .tag(index)
+                                }
+                            }
+                            .tabViewStyle(.page(indexDisplayMode: .never))
+                            .frame(height: 340)
                         }
-                        .tabViewStyle(.page(indexDisplayMode: .never))
-                        .frame(height: 340)
 
-                        // Nav overlay
                         HStack {
                             Button(action: { dismiss() }) {
                                 Image(systemName: "chevron.left")
@@ -67,9 +86,9 @@ struct ProductDetailView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 52)
 
-                        // Page dots
+                        let dotCount = product.imageURLs.isEmpty ? 3 : product.imageURLs.count
                         HStack(spacing: 6) {
-                            ForEach(0..<3, id: \.self) { i in
+                            ForEach(0..<dotCount, id: \.self) { i in
                                 Circle()
                                     .fill(currentImage == i ? Color.rwPrimary : Color.rwSage.opacity(0.4))
                                     .frame(
@@ -84,7 +103,6 @@ struct ProductDetailView: View {
 
                     VStack(alignment: .leading, spacing: 20) {
 
-                        // ── Title + price ────────────────────────────────
                         VStack(alignment: .leading, spacing: 6) {
                             Text(product.title)
                                 .font(.rwTitle)
@@ -158,7 +176,7 @@ struct ProductDetailView: View {
 
                                 Spacer()
 
-                                NavigationLink(destination: SellerProfileView()) {
+                                NavigationLink(destination: SellerProfileView(sellerID: product.sellerID, sellerName: product.sellerName)) {
                                     Text("View profile")
                                         .font(.rwCaptionBold)
                                         .foregroundColor(Color.rwPrimary)
@@ -180,35 +198,48 @@ struct ProductDetailView: View {
                                 actionLabel: "See all"
                             )
 
-                            ForEach(Review.mockList) { review in
-                                RWReviewRow(
-                                    name: review.reviewerName,
-                                    text: review.comment,
-                                    rating: Double(review.rating)
-                                )
+                            if reviewVM.isLoading {
+                                HStack {
+                                    Spacer()
+                                    ProgressView()
+                                    Spacer()
+                                }
+                                .padding(.vertical, 20)
+                            } else if reviewVM.reviews.isEmpty {
+                                Text("No reviews yet for this seller.")
+                                    .font(.rwBody)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                    .padding(.vertical, 8)
+                            } else {
+                                ForEach(reviewVM.reviews.prefix(3)) { review in
+                                    RWReviewRow(
+                                        name: review.reviewerName,
+                                        text: review.comment,
+                                        rating: Double(review.rating)
+                                    )
+                                    if review.id != reviewVM.reviews.prefix(3).last?.id {
+                                        RWDivider().padding(.leading, 50)
+                                    }
+                                }
                             }
 
-                            // Leave a review button
                             Button(action: { showReview = true }) {
-                                HStack {
+                                HStack(spacing: 6) {
                                     Image(systemName: "star")
-                                        .font(.system(size: 14))
+                                        .font(.system(size: 13, weight: .semibold))
                                     Text("Leave a Review")
                                         .font(.rwBodyBold)
                                 }
                                 .foregroundColor(Color.rwPrimary)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
+                                .padding(.vertical, 13)
                                 .background(Color.rwSageTint)
                                 .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.rwSage, lineWidth: 1)
-                                )
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwSage, lineWidth: 1))
                             }
                         }
 
-                        Spacer().frame(height: 90)
+                        Spacer().frame(height: 100)
                     }
                     .padding(20)
                 }
@@ -233,10 +264,7 @@ struct ProductDetailView: View {
                     )
                 }
 
-                NavigationLink(destination: ChatView(
-                    sellerName: product.sellerName,
-                    initials: String(product.sellerName.prefix(2))
-                )) {
+                NavigationLink(destination: InboxView()) {
                     HStack(spacing: 6) {
                         Image(systemName: "message")
                             .font(.system(size: 14, weight: .semibold))
@@ -259,8 +287,11 @@ struct ProductDetailView: View {
         }
         .navigationBarHidden(true)
         .ignoresSafeArea(edges: .top)
+        .onAppear {
+            reviewVM.fetchReviews(sellerID: product.sellerID)
+        }
         .sheet(isPresented: $showReview) {
-            ReviewView()
+            ReviewView(sellerID: product.sellerID, productID: product.id)
         }
     }
 }

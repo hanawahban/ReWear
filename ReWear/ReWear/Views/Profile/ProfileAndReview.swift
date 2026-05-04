@@ -4,23 +4,12 @@ import PhotosUI
 struct ProfileView: View {
 
     @EnvironmentObject var authViewModel: AuthViewModel
-    
+    @EnvironmentObject var productViewModel: ProductViewModel
+    @StateObject private var reviewVM = ReviewViewModel()
+
     @State private var selectedTab = 0
     @State private var selectedPhoto: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
-
-    let myListings: [(String, String, String, String, Double)] = [
-        ("Linen Blazer", "BHD 8.500", "Manama", "Like New", 4.8),
-        ("Floral Dress", "BHD 5.000", "Manama", "Good", 4.5),
-        ("Leather Tote", "BHD 12.000", "Manama", "Like New", 5.0),
-        ("Denim Jacket", "BHD 7.500", "Manama", "Good", 4.2),
-    ]
-
-    let reviews = [
-        ("Lena K.", "Super fast, item as described. Would buy again!", 5.0),
-        ("Nour A.", "Lovely seller, very communicative.", 4.0),
-        ("Farah S.", "Great experience overall.", 5.0),
-    ]
 
     var body: some View {
         NavigationStack {
@@ -32,7 +21,6 @@ struct ProfileView: View {
 
                         VStack(spacing: 14) {
 
-                            // ── Avatar with photo picker ──────────────────
                             PhotosPicker(selection: $selectedPhoto, matching: .images) {
                                 ZStack(alignment: .bottomTrailing) {
                                     if let profileImage {
@@ -118,7 +106,7 @@ struct ProfileView: View {
 
                         VStack(spacing: 10) {
                             NavigationLink(destination: FavoritesView()) {
-                                RWProfileLink(icon: "heart", label: "Saved Items", count: "4")
+                                RWProfileLink(icon: "heart", label: "Saved Items", count: "\(productViewModel.favoriteProducts.count)")
                             }
                             .buttonStyle(.plain)
 
@@ -153,7 +141,6 @@ struct ProfileView: View {
 
                         RWDivider()
 
-                        // ── Tabs ─────────────────────────────────────────
                         HStack(spacing: 0) {
                             ForEach(["My Listings", "Reviews"], id: \.self) { tab in
                                 let selected = (tab == "My Listings") ? selectedTab == 0 : selectedTab == 1
@@ -175,36 +162,75 @@ struct ProfileView: View {
                         .padding(.bottom, 16)
 
                         if selectedTab == 0 {
-                            LazyVGrid(
-                                columns: [GridItem(.flexible()), GridItem(.flexible())],
-                                spacing: 14
-                            ) {
-                                ForEach(myListings, id: \.0) { item in
-                                    NavigationLink(destination: ProductDetailView()) {
-                                        RWProductCard(
-                                            title: item.0, price: item.1,
-                                            location: item.2, condition: item.3, rating: item.4
-                                        )
+                            if productViewModel.myListings.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "tshirt")
+                                        .font(.system(size: 36, weight: .thin))
+                                        .foregroundColor(Color.rwSage)
+                                    Text("No listings yet")
+                                        .font(.rwHeading)
+                                        .foregroundColor(Color.rwTextPrimary)
+                                    Text("Items you post for sale will appear here")
+                                        .font(.rwCaption)
+                                        .foregroundColor(Color.rwTextSecondary)
+                                }
+                                .padding(.vertical, 40)
+                            } else {
+                                LazyVGrid(
+                                    columns: [GridItem(.flexible()), GridItem(.flexible())],
+                                    spacing: 14
+                                ) {
+                                    ForEach(productViewModel.myListings) { item in
+                                        NavigationLink(destination: ProductDetailView(product: item)) {
+                                            RWProductCard(
+                                                title: item.title,
+                                                price: item.formattedPrice,
+                                                location: item.location,
+                                                condition: item.condition,
+                                                rating: item.rating
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
                                 }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 20)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
                         } else {
-                            VStack(spacing: 0) {
-                                ForEach(reviews, id: \.0) { r in
-                                    RWReviewRow(name: r.0, text: r.1, rating: r.2)
-                                    RWDivider().padding(.leading, 56)
+                            if reviewVM.reviews.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "star")
+                                        .font(.system(size: 36, weight: .thin))
+                                        .foregroundColor(Color.rwSage)
+                                    Text("No reviews yet")
+                                        .font(.rwHeading)
+                                        .foregroundColor(Color.rwTextPrimary)
+                                    Text("Reviews from buyers will appear here")
+                                        .font(.rwCaption)
+                                        .foregroundColor(Color.rwTextSecondary)
                                 }
+                                .padding(.vertical, 40)
+                            } else {
+                                VStack(spacing: 0) {
+                                    ForEach(reviewVM.reviews) { r in
+                                        RWReviewRow(name: r.reviewerName, text: r.comment, rating: Double(r.rating))
+                                        RWDivider().padding(.leading, 56)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 20)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
                         }
                     }
                 }
             }
             .navigationBarHidden(true)
+            .onAppear {
+                if let uid = authViewModel.currentUser?.id {
+                    productViewModel.fetchMyListings(sellerID: uid)
+                    reviewVM.fetchReviews(sellerID: uid)
+                }
+            }
         }
     }
 
@@ -215,22 +241,16 @@ struct ProfileView: View {
     }
 }
 
+
 struct SellerProfileView: View {
 
     @State private var selectedTab = 0
+    @StateObject private var productVM = ProductViewModel()
+    @StateObject private var reviewVM = ReviewViewModel()
     @Environment(\.dismiss) var dismiss
 
-    let listings: [(String, String, String, String, Double)] = [
-        ("Linen Blazer", "BHD 8.500", "Manama", "Like New", 4.8),
-        ("Floral Dress", "BHD 5.000", "Manama", "Good", 4.5),
-        ("Leather Tote", "BHD 12.000", "Manama", "Like New", 5.0),
-        ("Denim Jacket", "BHD 7.500", "Manama", "Good", 4.2),
-    ]
-
-    let reviews = [
-        ("Lena K.", "Lovely seller, very communicative.", 5.0),
-        ("Nour A.", "Item exactly as described.", 4.0),
-    ]
+    var sellerID: String = ""
+    var sellerName: String = "Seller"
 
     var body: some View {
         ZStack {
@@ -239,50 +259,51 @@ struct SellerProfileView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
 
-                    HStack {
+                    HStack(spacing: 12) {
                         Button(action: { dismiss() }) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Color.rwPrimary)
                         }
                         Spacer()
+                        Text(sellerName)
+                            .font(.rwBodyBold)
+                            .foregroundColor(Color.rwTextPrimary)
+                        Spacer()
                         Image(systemName: "ellipsis")
                             .foregroundColor(Color.rwTextSecondary)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 12)
+                    .padding(.vertical, 14)
 
-                    VStack(spacing: 12) {
-                        RWAvatar(initials: "LK", size: 72)
+                    RWDivider()
+
+                    VStack(spacing: 14) {
+                        RWAvatar(initials: String(sellerName.prefix(2)), size: 72)
+
                         VStack(spacing: 4) {
-                            Text("Lena K.")
+                            Text(sellerName)
                                 .font(.rwTitle)
                                 .foregroundColor(Color.rwTextPrimary)
-                            Text("@lenak · Riffa, Bahrain")
-                                .font(.rwCaption)
-                                .foregroundColor(Color.rwTextSecondary)
                             HStack(spacing: 4) {
-                                RWStarRating(rating: 4.6, size: 13)
-                                Text("4.6 · 18 reviews")
+                                RWStarRating(rating: reviewVM.averageRating(), size: 13)
+                                Text(String(format: "%.1f · %d reviews", reviewVM.averageRating(), reviewVM.reviews.count))
                                     .font(.rwCaption)
                                     .foregroundColor(Color.rwTextSecondary)
                             }
                         }
 
                         HStack(spacing: 0) {
-                            RWStatCell(value: "8", label: "Listings")
+                            RWStatCell(value: "\(productVM.myListings.count)", label: "Listings")
                             Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
-                            RWStatCell(value: "18", label: "Reviews")
-                            Rectangle().fill(Color.rwBorder).frame(width: 1, height: 32)
-                            RWStatCell(value: "Jan 24", label: "Joined")
+                            RWStatCell(value: "\(reviewVM.reviews.count)", label: "Reviews")
                         }
                         .background(Color.rwSurface)
                         .cornerRadius(14)
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
                         HStack(spacing: 10) {
-                            NavigationLink(destination: ChatView(sellerName: "Lena K.", initials: "LK")) {
+                            NavigationLink(destination: InboxView()) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "message")
                                         .font(.system(size: 13, weight: .semibold))
@@ -322,9 +343,9 @@ struct SellerProfileView: View {
 
                     if selectedTab == 0 {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                            ForEach(listings, id: \.0) { item in
-                                NavigationLink(destination: ProductDetailView()) {
-                                    RWProductCard(title: item.0, price: item.1, location: item.2, condition: item.3, rating: item.4)
+                            ForEach(productVM.myListings) { item in
+                                NavigationLink(destination: ProductDetailView(product: item)) {
+                                    RWProductCard(title: item.title, price: item.formattedPrice, location: item.location, condition: item.condition, rating: item.rating)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -333,8 +354,8 @@ struct SellerProfileView: View {
                         .padding(.bottom, 20)
                     } else {
                         VStack(spacing: 0) {
-                            ForEach(reviews, id: \.0) { r in
-                                RWReviewRow(name: r.0, text: r.1, rating: r.2)
+                            ForEach(reviewVM.reviews) { r in
+                                RWReviewRow(name: r.reviewerName, text: r.comment, rating: Double(r.rating))
                                 RWDivider().padding(.leading, 56)
                             }
                         }
@@ -345,6 +366,12 @@ struct SellerProfileView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            if !sellerID.isEmpty {
+                productVM.fetchMyListings(sellerID: sellerID)
+                reviewVM.fetchReviews(sellerID: sellerID)
+            }
+        }
     }
 }
 
@@ -356,6 +383,9 @@ struct ReviewView: View {
     @State private var showThankYou = false
     @Environment(\.dismiss) var dismiss
 
+    var sellerID: String = ""
+    var productID: String = ""
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -364,7 +394,6 @@ struct ReviewView: View {
                 if showThankYou {
                     VStack(spacing: 28) {
                         Spacer()
-
                         ZStack {
                             Circle()
                                 .fill(Color.rwSageTint)
@@ -373,132 +402,57 @@ struct ReviewView: View {
                                 .font(.system(size: 50))
                                 .foregroundColor(Color.rwGold)
                         }
-
                         VStack(spacing: 10) {
                             Text("Review Submitted!")
                                 .font(.rwTitle)
                                 .foregroundColor(Color.rwTextPrimary)
-                            Text("Thank you for your feedback.\nIt helps the ReWear community.")
+                            Text("Thank you for your feedback.")
                                 .font(.rwBody)
                                 .foregroundColor(Color.rwTextSecondary)
-                                .multilineTextAlignment(.center)
-                                .lineSpacing(4)
                         }
-
-                        HStack(spacing: 8) {
-                            RWStarRating(rating: Double(selectedRating), size: 20)
-                            Text("\(selectedRating) star\(selectedRating > 1 ? "s" : "")")
-                                .font(.rwBodyBold)
-                                .foregroundColor(Color.rwTextPrimary)
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 14)
-                        .background(Color.rwSurface)
-                        .cornerRadius(14)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
-
-                        RWPrimaryButton(label: "Done") { dismiss() }
-                            .padding(.horizontal, 40)
-
                         Spacer()
+                        RWPrimaryButton(label: "Done") { dismiss() }
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 40)
                     }
-                    .transition(.opacity.combined(with: .scale))
-
                 } else {
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 24) {
+                        VStack(alignment: .leading, spacing: 24) {
 
-                            HStack(spacing: 14) {
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.rwSageTint)
-                                    .frame(width: 64, height: 64)
-                                    .overlay(
-                                        Image(systemName: "tshirt")
-                                            .font(.system(size: 22, weight: .thin))
-                                            .foregroundColor(Color.rwSage)
-                                    )
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Linen Blazer — Beige")
-                                        .font(.rwBodyBold)
-                                        .foregroundColor(Color.rwTextPrimary)
-                                    Text("BHD 8.500")
-                                        .font(.rwCaption)
-                                        .foregroundColor(Color.rwPrimary)
-                                    Text("Sold by Sara M.")
-                                        .font(.rwMicro)
-                                        .foregroundColor(Color.rwTextSecondary)
-                                }
-                                Spacer()
-                            }
-                            .padding(14)
-                            .background(Color.rwSurface)
-                            .cornerRadius(16)
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.rwBorder, lineWidth: 1))
-
-                            RWDivider()
-
-                            VStack(spacing: 14) {
-                                Text("How was your experience?")
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Your Rating")
                                     .font(.rwHeading)
                                     .foregroundColor(Color.rwTextPrimary)
+                                HStack(spacing: 10) {
+                                    ForEach(1...5, id: \.self) { star in
+                                        Image(systemName: star <= selectedRating ? "star.fill" : "star")
+                                            .font(.system(size: 32))
+                                            .foregroundColor(star <= selectedRating ? Color.rwGold : Color.rwSage.opacity(0.4))
+                                            .onTapGesture { selectedRating = star }
+                                    }
+                                }
+                            }
 
-                                HStack(spacing: 16) {
-                                    ForEach(1..<6) { star in
-                                        Button(action: {
-                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                                                selectedRating = star
-                                            }
-                                        }) {
-                                            Image(systemName: selectedRating >= star ? "star.fill" : "star")
-                                                .font(.system(size: 34))
-                                                .foregroundColor(selectedRating >= star ? Color.rwGold : Color.rwBorder)
-                                                .scaleEffect(selectedRating == star ? 1.2 : 1.0)
-                                                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: selectedRating)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Your Review")
+                                    .font(.rwHeading)
+                                    .foregroundColor(Color.rwTextPrimary)
+                                TextEditor(text: $reviewText)
+                                    .font(.rwBody)
+                                    .frame(height: 120)
+                                    .padding(10)
+                                    .background(Color.rwSageTint)
+                                    .cornerRadius(12)
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
+                                    .overlay(alignment: .topLeading) {
+                                        if reviewText.isEmpty {
+                                            Text("Share your experience with this seller...")
+                                                .font(.rwBody)
+                                                .foregroundColor(Color.rwTextSecondary.opacity(0.6))
+                                                .padding(14)
+                                                .allowsHitTesting(false)
                                         }
                                     }
-                                }
-
-                                let labels = ["", "Poor", "Fair", "Good", "Great", "Excellent!"]
-                                if selectedRating > 0 {
-                                    Text(labels[selectedRating])
-                                        .font(.rwBodyBold)
-                                        .foregroundColor(Color.rwPrimary)
-                                        .transition(.opacity)
-                                }
-                            }
-
-                            RWDivider()
-
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Leave a comment (optional)")
-                                    .font(.rwHeading)
-                                    .foregroundColor(Color.rwTextPrimary)
-
-                                ZStack(alignment: .topLeading) {
-                                    TextEditor(text: $reviewText)
-                                        .font(.rwBody)
-                                        .frame(height: 130)
-                                        .padding(10)
-                                        .background(Color.rwSageTint)
-                                        .cornerRadius(14)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 14)
-                                                .stroke(Color.rwBorder, lineWidth: 1)
-                                        )
-                                    if reviewText.isEmpty {
-                                        Text("Share your experience with this seller...")
-                                            .font(.rwBody)
-                                            .foregroundColor(Color.rwTextSecondary)
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 18)
-                                            .allowsHitTesting(false)
-                                    }
-                                }
-
-                                Text("\(reviewText.count)/200")
-                                    .font(.rwMicro)
-                                    .foregroundColor(Color.rwTextSecondary)
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
                             }
 
                             RWPrimaryButton(
@@ -540,7 +494,6 @@ struct ReviewView: View {
     }
 }
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
 struct RWStatCell: View {
     var value: String
     var label: String
@@ -604,6 +557,10 @@ struct RWProfileLink: View {
     }
 }
 
-#Preview("My Profile") { ProfileView() }
+#Preview("My Profile") {
+    ProfileView()
+        .environmentObject(AuthViewModel(autoLoginEnabled: false))
+        .environmentObject(ProductViewModel())
+}
 #Preview("Seller Profile") { SellerProfileView() }
 #Preview("Review") { ReviewView() }
