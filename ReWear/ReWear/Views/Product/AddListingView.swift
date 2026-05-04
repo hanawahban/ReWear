@@ -10,6 +10,8 @@ struct AddListingView: View {
 
     @State private var newlyCreatedProduct: Product? = nil
     @State private var navigateToDetail = false
+    @State private var useCurrentLocation = true
+    @State private var manualLocation = ""
 
     @State private var title = ""
     @State private var description = ""
@@ -26,6 +28,8 @@ struct AddListingView: View {
     @State private var showError = false
     @State private var errorMessage = ""
 
+    @StateObject private var locationVM = LocationViewModel()
+
     let categories = ["Tops", "Dresses", "Outerwear", "Bottoms", "Shoes", "Bags", "Accessories"]
     let conditions = ["New with tags", "Like New", "Good", "Fair", "Poor"]
     let sizes = ["XS", "S", "M", "L", "XL", "XXL", "One Size"]
@@ -38,6 +42,7 @@ struct AddListingView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 24) {
 
+                        // ── Photos ────────────────────────────────────────
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Photos")
                                 .font(.rwHeading)
@@ -48,7 +53,6 @@ struct AddListingView: View {
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 10) {
-
                                     PhotosPicker(
                                         selection: $selectedPhotoItems,
                                         maxSelectionCount: 8,
@@ -73,10 +77,10 @@ struct AddListingView: View {
                                                     .foregroundColor(Color.rwSage)
                                             )
                                     }
-                                    .onChange(of: selectedPhotoItems) { items in
+                                    .onChange(of: selectedPhotoItems) { oldValue, newValue in
                                         Task {
                                             var loaded: [UIImage] = []
-                                            for item in items {
+                                            for item in newValue {
                                                 if let data = try? await item.loadTransferable(type: Data.self),
                                                    let img = UIImage(data: data) {
                                                     loaded.append(img)
@@ -105,7 +109,6 @@ struct AddListingView: View {
                                                     .scaledToFill()
                                                     .frame(width: 88, height: 88)
                                                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                // Remove button
                                                 Button(action: {
                                                     selectedImages.remove(at: index)
                                                     if index < selectedPhotoItems.count {
@@ -129,13 +132,13 @@ struct AddListingView: View {
 
                         RWDivider()
 
+                        // ── Item Details ──────────────────────────────────
                         VStack(alignment: .leading, spacing: 14) {
                             Text("Item details")
                                 .font(.rwHeading)
                                 .foregroundColor(Color.rwTextPrimary)
 
                             RWTextField(placeholder: "Title e.g. Zara linen blazer", text: $title)
-
                             RWTextField(placeholder: "Brand (optional)", text: $brand, icon: "tag")
 
                             VStack(alignment: .leading, spacing: 6) {
@@ -161,7 +164,6 @@ struct AddListingView: View {
                                     }
                             }
 
-                            // Category picker
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Category")
                                     .font(.rwCaption)
@@ -188,7 +190,6 @@ struct AddListingView: View {
                                 }
                             }
 
-                            // Condition chips
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Condition")
                                     .font(.rwCaption)
@@ -215,7 +216,6 @@ struct AddListingView: View {
                                 }
                             }
 
-                            // Size chips
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Size")
                                     .font(.rwCaption)
@@ -253,13 +253,42 @@ struct AddListingView: View {
                             Text("Location")
                                 .font(.rwHeading)
                                 .foregroundColor(Color.rwTextPrimary)
-                            HStack(spacing: 6) {
-                                Image(systemName: "location.fill")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(Color.rwPrimary)
-                                Text("Use my current location")
-                                    .font(.rwBodyBold)
-                                    .foregroundColor(Color.rwPrimary)
+
+                            Button(action: { useCurrentLocation = true }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: useCurrentLocation ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(Color.rwPrimary)
+                                    Text("Use my current location")
+                                        .font(.rwBody)
+                                        .foregroundColor(Color.rwTextPrimary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if useCurrentLocation {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "location.fill")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(Color.rwPrimary)
+                                    Text(locationVM.userLocation != nil ? locationVM.currentCity : "Detecting location...")
+                                        .font(.rwBodyBold)
+                                        .foregroundColor(Color.rwPrimary)
+                                }
+                            }
+
+                            Button(action: { useCurrentLocation = false }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: !useCurrentLocation ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(Color.rwPrimary)
+                                    Text("Enter location manually")
+                                        .font(.rwBody)
+                                        .foregroundColor(Color.rwTextPrimary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if !useCurrentLocation {
+                                RWTextField(placeholder: "e.g. Riffa, Bahrain", text: $manualLocation)
                             }
                         }
 
@@ -295,7 +324,6 @@ struct AddListingView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        // Reset all fields
                         title = ""
                         description = ""
                         brand = ""
@@ -320,11 +348,13 @@ struct AddListingView: View {
             } message: {
                 Text(errorMessage)
             }
+            .onAppear {
+                locationVM.requestPermission()
+            }
         }
     }
 
     func postListing() {
-        // Validate required fields
         guard !title.isEmpty else {
             errorMessage = "Please enter a title."
             showError = true
@@ -345,6 +375,13 @@ struct AddListingView: View {
             showError = true
             return
         }
+        if !useCurrentLocation {
+            guard !manualLocation.isEmpty else {
+                errorMessage = "Please enter a location."
+                showError = true
+                return
+            }
+        }
 
         isPosting = true
 
@@ -356,10 +393,11 @@ struct AddListingView: View {
             condition: selectedCondition,
             size: selectedSize,
             brand: brand,
-            location: "Manama",
-            coord: (26.0667, 50.5577),
+            location: useCurrentLocation ? locationVM.currentCity : manualLocation,
+            coord: useCurrentLocation
+                ? (locationVM.userLocation.map { ($0.latitude, $0.longitude) } ?? (26.2167, 50.4833))
+                : (26.2167, 50.4833),
             images: selectedImages
-            
         ) { success in
             isPosting = false
             if success {

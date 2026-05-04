@@ -13,7 +13,7 @@ struct MapView: View {
 
     @State private var position = MapCameraPosition.region(
         MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 26.0667, longitude: 50.5577),
+            center: CLLocationCoordinate2D(latitude: 26.2167, longitude: 50.4833),
             span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
         )
     )
@@ -68,31 +68,12 @@ struct MapView: View {
                 .font(.rwTitle)
                 .foregroundColor(Color.rwTextPrimary)
             Spacer()
-            Button(action: {
-                locationVM.requestPermission()
-                position = .region(MKCoordinateRegion(
-                    center: userCoordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                ))
-            }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 12))
-                    Text(locationVM.currentCity)
-                        .font(.rwCaptionBold)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Color.rwPrimary)
-                .cornerRadius(20)
-            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
         .padding(.bottom, 12)
     }
-
+    
     private var mapSection: some View {
         Group {
             if mapLoaded {
@@ -201,7 +182,7 @@ struct MapView: View {
         }
         .background(Color.rwBackground)
     }
-} // ← MapView ends here
+}
 
 struct RWNearbyCard: View {
     var title: String
@@ -221,18 +202,32 @@ struct RWNearbyCard: View {
                                 .foregroundColor(Color.rwSage)
                         )
                 } else {
-                    AsyncImage(url: URL(string: imageURL)) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.rwSageTint)
-                            .overlay(ProgressView())
+                    AsyncImage(url: URL(string: imageURL)) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure(_):
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.rwSageTint)
+                                .overlay(
+                                    Image(systemName: "tshirt")
+                                        .font(.system(size: 24, weight: .thin))
+                                        .foregroundColor(Color.rwSage)
+                                )
+                        case .empty:
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.rwSageTint)
+                                .overlay(ProgressView())
+                        @unknown default:
+                            EmptyView()
+                        }
                     }
-                    .clipped()
                 }
             }
             .frame(width: 130, height: 110)
-            .cornerRadius(10)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
 
             Text(title)
                 .font(.rwCaptionBold)

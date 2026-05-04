@@ -191,6 +191,23 @@ class LocationViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        
+        #if targetEnvironment(simulator)
+        let simLocation = CLLocation(latitude: 26.2167, longitude: 50.4833)
+        self.userLocation = simLocation.coordinate
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(simLocation) { placemarks, error in
+            guard let placemark = placemarks?.first else { return }
+            DispatchQueue.main.async {
+                self.currentCity = placemark.subLocality ?? placemark.locality ?? placemark.administrativeArea ?? "Bahrain"
+            }
+        }
+        #endif
+        
+        if locationManager.authorizationStatus == .authorizedWhenInUse ||
+           locationManager.authorizationStatus == .authorizedAlways {
+            locationManager.startUpdatingLocation()
+        }
     }
 
     func requestPermission() {
@@ -205,6 +222,13 @@ class LocationViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         Task { @MainActor in
             self.userLocation = location.coordinate
+        }
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            guard let placemark = placemarks?.first else { return }
+            DispatchQueue.main.async {
+                self.currentCity = placemark.locality ?? placemark.subLocality ?? "Bahrain"
+            }
         }
     }
 
