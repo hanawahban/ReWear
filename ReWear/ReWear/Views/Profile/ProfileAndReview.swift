@@ -103,7 +103,6 @@ struct ProfileView: View {
 
                             HStack(spacing: 10) {
                                 RWOutlineButton(label: "Edit Profile", action: { showEditSheet = true })
-                                    .onTapGesture { showEditSheet = true }
                                 RWOutlineButton(label: "Share", icon: "square.and.arrow.up")
                                     .frame(width: 100)
                             }
@@ -260,7 +259,12 @@ struct SellerProfileView: View {
     @State private var selectedTab = 0
     @StateObject private var productVM = ProductViewModel()
     @StateObject private var reviewVM = ReviewViewModel()
+    @StateObject private var chatVM = ChatViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) var dismiss
+
+    @State private var activeConversation: Conversation? = nil
+    @State private var navigateToChat = false
 
     var sellerID: String = ""
     var sellerName: String = "Seller"
@@ -316,7 +320,20 @@ struct SellerProfileView: View {
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.rwBorder, lineWidth: 1))
 
                         HStack(spacing: 10) {
-                            NavigationLink(destination: InboxView()) {
+                            Button {
+                                guard let currentUser = authViewModel.currentUser else { return }
+                                chatVM.getOrCreateConversation(
+                                    buyerID: currentUser.id,
+                                    buyerName: currentUser.name,
+                                    sellerID: sellerID,
+                                    sellerName: sellerName,
+                                    productID: "general",
+                                    productTitle: "General Enquiry"
+                                ) { conversation in
+                                    activeConversation = conversation
+                                    navigateToChat = true
+                                }
+                            } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "message")
                                         .font(.system(size: 13, weight: .semibold))
@@ -329,7 +346,13 @@ struct SellerProfileView: View {
                                 .background(Color.rwPrimary)
                                 .cornerRadius(14)
                             }
+
                             RWOutlineButton(label: "Follow")
+                        }
+                        .navigationDestination(isPresented: $navigateToChat) {
+                            if let conv = activeConversation {
+                                ChatView(conversation: conv, currentUserID: authViewModel.currentUser?.id ?? "")
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
@@ -358,7 +381,14 @@ struct SellerProfileView: View {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                             ForEach(productVM.myListings) { item in
                                 NavigationLink(destination: ProductDetailView(product: item)) {
-                                    RWProductCard(title: item.title, price: item.formattedPrice, location: item.location, condition: item.condition, rating: item.rating)
+                                    RWProductCard(
+                                        title: item.title,
+                                        price: item.formattedPrice,
+                                        location: item.location,
+                                        condition: item.condition,
+                                        rating: item.rating,
+                                        imageURL: item.imageURLs.first ?? ""
+                                    )
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -387,6 +417,7 @@ struct SellerProfileView: View {
         }
     }
 }
+
 
 struct ReviewView: View {
 
@@ -713,5 +744,10 @@ struct EditProfileSheet: View {
         .environmentObject(AuthViewModel(autoLoginEnabled: false))
         .environmentObject(ProductViewModel())
 }
-#Preview("Seller Profile") { SellerProfileView() }
+
+#Preview("Seller Profile") {
+    SellerProfileView()
+        .environmentObject(AuthViewModel(autoLoginEnabled: false))
+}
+
 #Preview("Review") { ReviewView() }

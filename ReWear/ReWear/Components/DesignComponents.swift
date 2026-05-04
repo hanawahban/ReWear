@@ -1,11 +1,11 @@
 import SwiftUI
 
 extension Color {
-    static let rwPrimary        = Color(hex: "#1B4332")   //
-    static let rwSage           = Color(hex: "#7BAE8A")   //
-    static let rwSageTint       = Color(hex: "#EEF4F0")   //
-    static let rwBackground     = Color(hex: "#F8F6F1")   //
-    static let rwSurface        = Color(hex: "#FFFFFF")   //
+    static let rwPrimary        = Color(hex: "#1B4332")
+    static let rwSage           = Color(hex: "#7BAE8A")
+    static let rwSageTint       = Color(hex: "#EEF4F0")
+    static let rwBackground     = Color(hex: "#F8F6F1")
+    static let rwSurface        = Color(hex: "#FFFFFF")
     static let rwTextPrimary    = Color(hex: "#1A1A18")
     static let rwTextSecondary  = Color(hex: "#6B6B64")
     static let rwBorder         = Color(hex: "#E2DED6")
@@ -23,19 +23,16 @@ extension Color {
     }
 }
 
-
-
 extension Font {
-    static let rwDisplay    = Font.custom("Palatino", size: 28).weight(.semibold)
-    static let rwTitle      = Font.custom("Palatino", size: 22).weight(.semibold)
-    static let rwHeading    = Font.custom("Palatino", size: 18).weight(.semibold)
-
-    static let rwBodyLarge  = Font.system(size: 16, weight: .regular, design: .default)
-    static let rwBody       = Font.system(size: 14, weight: .regular, design: .default)
-    static let rwBodyBold   = Font.system(size: 14, weight: .semibold, design: .default)
-    static let rwCaption    = Font.system(size: 12, weight: .regular, design: .default)
+    static let rwDisplay     = Font.custom("Palatino", size: 28).weight(.semibold)
+    static let rwTitle       = Font.custom("Palatino", size: 22).weight(.semibold)
+    static let rwHeading     = Font.custom("Palatino", size: 18).weight(.semibold)
+    static let rwBodyLarge   = Font.system(size: 16, weight: .regular, design: .default)
+    static let rwBody        = Font.system(size: 14, weight: .regular, design: .default)
+    static let rwBodyBold    = Font.system(size: 14, weight: .semibold, design: .default)
+    static let rwCaption     = Font.system(size: 12, weight: .regular, design: .default)
     static let rwCaptionBold = Font.system(size: 12, weight: .semibold, design: .default)
-    static let rwMicro      = Font.system(size: 11, weight: .regular, design: .default)
+    static let rwMicro       = Font.system(size: 11, weight: .regular, design: .default)
 }
 
 struct RWPrimaryButton: View {
@@ -78,7 +75,6 @@ struct RWOutlineButton: View {
         }
     }
 }
-
 
 struct RWTextField: View {
     var placeholder: String
@@ -241,31 +237,34 @@ struct RWProductCard: View {
         VStack(alignment: .leading, spacing: 8) {
 
             // Image
-            ZStack(alignment: .topTrailing) {
-                if !imageURL.isEmpty, let url = URL(string: imageURL) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 160)
-                            .clipped()
-                    } placeholder: {
+            GeometryReader { geo in
+                Group {
+                    if !imageURL.isEmpty, let url = URL(string: imageURL) {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            ZStack {
+                                Color.rwSageTint
+                                Image(systemName: "tshirt")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(Color.rwSage)
+                            }
+                        }
+                    } else {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.rwSageTint)
+                            Color.rwSageTint
                             Image(systemName: "tshirt")
                                 .font(.system(size: 32))
                                 .foregroundColor(Color.rwSage)
-                                .frame(height: 160)
                         }
                     }
-                    .cornerRadius(12)
-                } else {
-                    RWImagePlaceholder(height: 160, icon: "tshirt")
                 }
-
-                // Favorite button
+                .frame(width: geo.size.width, height: 160)
+                .clipped()
+            }
+            .frame(height: 160)
+            .cornerRadius(12)
+            .overlay(alignment: .topTrailing) {
                 Image(systemName: isFavorited ? "heart.fill" : "heart")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(isFavorited ? Color.rwPrimary : Color.rwTextSecondary)
@@ -351,7 +350,6 @@ struct RWProductCard: View {
 
             RWProductCard(title: "Linen Blazer", price: "BHD 8.500", condition: "Like New", rating: 4.8)
                 .frame(width: 180)
-
         }
         .padding(20)
         .background(Color.rwBackground)
