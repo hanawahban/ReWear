@@ -270,15 +270,14 @@ struct ProductDetailView: View {
                 Button {
                     guard let currentUser = authViewModel.currentUser else { return }
                     chatVM.getOrCreateConversation(
-                        buyerID: currentUser.id,
-                        buyerName: currentUser.name,
+                        buyerID: authViewModel.currentUser?.id ?? "",
+                        buyerName: authViewModel.currentUser?.name ?? "User",
                         sellerID: product.sellerID,
                         sellerName: product.sellerName,
                         productID: product.id,
                         productTitle: product.title
                     ) { conversation in
                         activeConversation = conversation
-                        navigateToChat = true
                     }
                 } label: {
                     HStack(spacing: 6) {

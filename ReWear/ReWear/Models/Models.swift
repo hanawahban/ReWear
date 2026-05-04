@@ -12,6 +12,10 @@ struct RWUser: Identifiable, Codable {
     var listingCount: Int
     var joinedDate: Date
     var bio: String
+    var buyerID: String = ""
+        var buyerName: String = ""
+        var sellerID: String = ""
+        var sellerName: String = ""
 
     var initials: String {
         let parts = name.split(separator: " ")

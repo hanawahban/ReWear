@@ -20,7 +20,19 @@ class ChatViewModel: ObservableObject {
             .addSnapshotListener { snapshot, error in
                 Task { @MainActor in
                     if let documents = snapshot?.documents {
-                        self.conversations = documents.compactMap { try? $0.data(as: Conversation.self) }
+                        self.conversations = documents.compactMap { doc -> Conversation? in
+                            guard var conv = try? doc.data(as: Conversation.self) else { return nil }
+                            if conv.buyerID == userID {
+                                conv.otherUserName = conv.sellerName
+                                conv.otherUserID = conv.sellerID
+                                conv.otherUserInitials = String(conv.sellerName.prefix(2)).uppercased()
+                            } else {
+                                conv.otherUserName = conv.buyerName
+                                conv.otherUserID = conv.buyerID
+                                conv.otherUserInitials = String(conv.buyerName.prefix(2)).uppercased()
+                            }
+                            return conv
+                        }
                     }
                     self.isLoading = false
                 }
@@ -61,7 +73,6 @@ class ChatViewModel: ObservableObject {
 
         do {
             try db.collection("conversations").document(conversationID).collection("messages").document(message.id).setData(from: message)
-            
             db.collection("conversations").document(conversationID).updateData([
                 "lastMessage": text,
                 "lastMessageTimestamp": FieldValue.serverTimestamp()
@@ -76,6 +87,7 @@ class ChatViewModel: ObservableObject {
             "isRead": true
         ])
     }
+
     func getOrCreateConversation(
         buyerID: String,
         buyerName: String,
@@ -85,17 +97,17 @@ class ChatViewModel: ObservableObject {
         productTitle: String,
         completion: @escaping (Conversation) -> Void
     ) {
-        // Check if a conversation already exists for this buyer+seller+product
         db.collection("conversations")
             .whereField("participants", arrayContains: buyerID)
             .getDocuments { snapshot, _ in
-                if let existing = snapshot?.documents.compactMap({ try? $0.data(as: Conversation.self) })
-                    .first(where: { $0.otherUserID == sellerID && $0.productID == productID }) {
+                if let existing = snapshot?.documents
+                    .compactMap({ try? $0.data(as: Conversation.self) })
+                    .first(where: { $0.sellerID == sellerID && $0.productID == productID }) {
                     completion(existing)
                     return
                 }
 
-                // Create a new one
+                // Create a new conversation
                 let id = UUID().uuidString
                 let conversation = Conversation(
                     id: id,
@@ -106,7 +118,11 @@ class ChatViewModel: ObservableObject {
                     productTitle: productTitle,
                     lastMessage: "",
                     lastMessageDate: Date(),
-                    hasUnread: false
+                    hasUnread: false,
+                    buyerID: buyerID,
+                    buyerName: buyerName,
+                    sellerID: sellerID,
+                    sellerName: sellerName
                 )
 
                 let data: [String: Any] = [
@@ -119,7 +135,11 @@ class ChatViewModel: ObservableObject {
                     "productTitle": productTitle,
                     "lastMessage": "",
                     "lastMessageDate": Timestamp(),
-                    "hasUnread": false
+                    "hasUnread": false,
+                    "buyerID": buyerID,
+                    "buyerName": buyerName,
+                    "sellerID": sellerID,
+                    "sellerName": sellerName
                 ]
 
                 self.db.collection("conversations").document(id).setData(data) { _ in
@@ -191,7 +211,7 @@ class LocationViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        
+
         #if targetEnvironment(simulator)
         let simLocation = CLLocation(latitude: 26.2167, longitude: 50.4833)
         self.userLocation = simLocation.coordinate
@@ -203,7 +223,7 @@ class LocationViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
             }
         }
         #endif
-        
+
         if locationManager.authorizationStatus == .authorizedWhenInUse ||
            locationManager.authorizationStatus == .authorizedAlways {
             locationManager.startUpdatingLocation()
@@ -227,7 +247,7 @@ class LocationViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         geocoder.reverseGeocodeLocation(location) { placemarks, error in
             guard let placemark = placemarks?.first else { return }
             DispatchQueue.main.async {
-                self.currentCity = placemark.locality ?? placemark.subLocality ?? "Bahrain"
+                self.currentCity = placemark.subLocality ?? placemark.locality ?? placemark.administrativeArea ?? "Bahrain"
             }
         }
     }
