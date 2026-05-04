@@ -1,28 +1,21 @@
 import SwiftUI
+import FirebaseAuth
 
 struct InboxView: View {
 
+    @StateObject private var chatVM = ChatViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var searchText = ""
 
-    let conversations: [(String, String, String, String, Bool)] = [
-        ("Sara M.", "Is this still available?", "2m", "SM", true),
-        ("Lena K.", "Sure, come pick it up anytime!", "1h", "LK", false),
-        ("Nour A.", "What's your best price?", "Yesterday", "NA", false),
-        ("Farah S.", "I'll take it!", "Mon", "FS", true),
-        ("Hana J.", "Already sold, sorry.", "Sun", "HJ", false),
-        ("Mia K.", "Can I see more photos?", "Last week", "MK", false),
-    ]
-
-    // Filter conversations by sender name
-    var filteredConversations: [(String, String, String, String, Bool)] {
-        if searchText.isEmpty { return conversations }
-        return conversations.filter {
-            $0.0.localizedCaseInsensitiveContains(searchText)
+    var filteredConversations: [Conversation] {
+        if searchText.isEmpty { return chatVM.conversations }
+        return chatVM.conversations.filter {
+            $0.otherUserName.localizedCaseInsensitiveContains(searchText)
         }
     }
 
     var unreadCount: Int {
-        conversations.filter { $0.4 }.count
+        chatVM.conversations.filter { $0.hasUnread }.count
     }
 
     var body: some View {
@@ -56,10 +49,8 @@ struct InboxView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(Color.rwTextSecondary)
                             .font(.system(size: 14))
-
                         TextField("Search messages...", text: $searchText)
                             .font(.rwBody)
-
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
@@ -78,59 +69,59 @@ struct InboxView: View {
 
                     RWDivider()
 
-                    if filteredConversations.isEmpty {
+                    if chatVM.isLoading {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    } else if filteredConversations.isEmpty {
                         VStack(spacing: 16) {
                             Spacer()
                             ZStack {
-                                Circle()
-                                    .fill(Color.rwSageTint)
-                                    .frame(width: 80, height: 80)
-                                Image(systemName: "magnifyingglass")
+                                Circle().fill(Color.rwSageTint).frame(width: 80, height: 80)
+                                Image(systemName: searchText.isEmpty ? "message" : "magnifyingglass")
                                     .font(.system(size: 32, weight: .thin))
                                     .foregroundColor(Color.rwSage)
                             }
-                            Text("No conversations found")
+                            Text(searchText.isEmpty ? "No messages yet" : "No conversations found")
                                 .font(.rwHeading)
                                 .foregroundColor(Color.rwTextPrimary)
-                            Text("Try a different name")
+                            Text(searchText.isEmpty ? "Start a conversation from any listing" : "Try a different name")
                                 .font(.rwBody)
                                 .foregroundColor(Color.rwTextSecondary)
                             Spacer()
                         }
                     } else {
                         List {
-                            ForEach(filteredConversations, id: \.0) { conv in
+                            ForEach(filteredConversations) { conv in
                                 NavigationLink(destination: ChatView(
-                                    sellerName: conv.0,
-                                    initials: conv.3
+                                    conversation: conv,
+                                    currentUserID: authViewModel.currentUser?.id ?? ""
                                 )) {
                                     HStack(spacing: 14) {
-
                                         ZStack(alignment: .bottomTrailing) {
-                                            RWAvatar(initials: conv.3, size: 50)
-                                            if conv.4 {
+                                            RWAvatar(initials: conv.otherUserInitials, size: 50)
+                                            if conv.hasUnread {
                                                 Circle()
                                                     .fill(Color.rwPrimary)
                                                     .frame(width: 12, height: 12)
                                                     .overlay(Circle().stroke(Color.rwBackground, lineWidth: 2))
                                             }
                                         }
-
                                         VStack(alignment: .leading, spacing: 4) {
                                             HStack {
-                                                Text(conv.0)
-                                                    .font(conv.4 ? .rwBodyBold : .rwBody)
+                                                Text(conv.otherUserName)
+                                                    .font(conv.hasUnread ? .rwBodyBold : .rwBody)
                                                     .foregroundColor(Color.rwTextPrimary)
                                                 Spacer()
-                                                Text(conv.2)
+                                                Text(relativeTime(conv.lastMessageDate))
                                                     .font(.rwMicro)
                                                     .foregroundColor(Color.rwTextSecondary)
                                             }
-                                            Text(conv.1)
+                                            Text(conv.lastMessage)
                                                 .font(.rwCaption)
-                                                .foregroundColor(conv.4 ? Color.rwTextPrimary : Color.rwTextSecondary)
+                                                .foregroundColor(conv.hasUnread ? Color.rwTextPrimary : Color.rwTextSecondary)
                                                 .lineLimit(1)
-                                                .fontWeight(conv.4 ? .semibold : .regular)
+                                                .fontWeight(conv.hasUnread ? .semibold : .regular)
                                         }
                                     }
                                     .padding(.vertical, 6)
@@ -147,25 +138,34 @@ struct InboxView: View {
             }
             .navigationBarHidden(true)
         }
+        .onAppear {
+            if let userID = authViewModel.currentUser?.id {
+                chatVM.fetchConversations(userID: userID)
+            }
+        }
+    }
+
+    func relativeTime(_ date: Date) -> String {
+        let diff = Date().timeIntervalSince(date)
+        if diff < 60 { return "Just now" }
+        if diff < 3600 { return "\(Int(diff/60))m" }
+        if diff < 86400 { return "\(Int(diff/3600))h" }
+        let days = Int(diff/86400)
+        if days == 1 { return "Yesterday" }
+        if days < 7 { return "\(days)d" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
     }
 }
 
 struct ChatView: View {
 
-    var sellerName: String = "Sara M."
-    var initials: String = "SM"
+    let conversation: Conversation
+    let currentUserID: String
 
+    @StateObject private var chatVM = ChatViewModel()
     @State private var messageText = ""
-    @State private var messages: [(String, Bool)] = [
-        ("Hi! Is the linen blazer still available?", true),
-        ("Yes it is! Are you interested?", false),
-        ("Yes, what's the condition like?", true),
-        ("It's like new, barely worn. No stains.", false),
-        ("Can you do BHD 7?", true),
-        ("Best I can do is BHD 8. It's a great piece!", false),
-        ("Deal! When can I pick it up?", true),
-    ]
-
     @Environment(\.dismiss) var dismiss
     @FocusState private var isInputFocused: Bool
 
@@ -178,12 +178,12 @@ struct ChatView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color.rwPrimary)
                 }
-                RWAvatar(initials: initials, size: 38)
+                RWAvatar(initials: conversation.otherUserInitials, size: 38)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(sellerName)
+                    Text(conversation.otherUserName)
                         .font(.rwBodyBold)
                         .foregroundColor(Color.rwTextPrimary)
-                    Text("Usually replies within an hour")
+                    Text(conversation.productTitle)
                         .font(.rwMicro)
                         .foregroundColor(Color.rwTextSecondary)
                 }
@@ -196,74 +196,38 @@ struct ChatView: View {
             .background(Color.rwBackground)
             .overlay(alignment: .bottom) { RWDivider() }
 
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.rwSageTint)
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Image(systemName: "tshirt")
-                            .font(.system(size: 16, weight: .thin))
-                            .foregroundColor(Color.rwSage)
-                    )
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Linen Blazer — Beige")
-                        .font(.rwCaptionBold)
-                        .foregroundColor(Color.rwTextPrimary)
-                    Text("BHD 8.500")
-                        .font(.rwCaption)
-                        .foregroundColor(Color.rwPrimary)
-                }
-                Spacer()
-                NavigationLink(destination: ProductDetailView()) {
-                    Text("View item")
-                        .font(.rwMicro)
-                        .foregroundColor(Color.rwPrimary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.rwPrimary, lineWidth: 1))
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Color.rwSurface)
-            .overlay(alignment: .bottom) { RWDivider() }
-
+            // ── Messages ──────────────────────────────────────────────────
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(Array(messages.enumerated()), id: \.offset) { index, msg in
-                            HStack(alignment: .bottom, spacing: 8) {
-                                if msg.1 {
-                                    Spacer(minLength: 60)
-                                } else {
-                                    RWAvatar(initials: initials, size: 28)
+                    LazyVStack(spacing: 8) {
+                        ForEach(Array(chatVM.messages.enumerated()), id: \.element.id) { index, msg in
+                            HStack {
+                                if msg.isMine { Spacer(minLength: 60) }
+                                if !msg.isMine {
+                                    RWAvatar(initials: conversation.otherUserInitials, size: 28)
                                 }
-
-                                Text(msg.0)
+                                Text(msg.text)
                                     .font(.rwBody)
-                                    .foregroundColor(msg.1 ? .white : Color.rwTextPrimary)
+                                    .foregroundColor(msg.isMine ? .white : Color.rwTextPrimary)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 10)
-                                    .background(msg.1 ? Color.rwPrimary : Color.rwSurface)
+                                    .background(msg.isMine ? Color.rwPrimary : Color.rwSurface)
                                     .cornerRadius(18)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 18)
-                                            .stroke(msg.1 ? Color.clear : Color.rwBorder, lineWidth: 1)
+                                            .stroke(msg.isMine ? Color.clear : Color.rwBorder, lineWidth: 1)
                                     )
                                     .id(index)
-
-                                if !msg.1 {
-                                    Spacer(minLength: 60)
-                                }
+                                if !msg.isMine { Spacer(minLength: 60) }
                             }
                         }
                     }
                     .padding(16)
                 }
                 .background(Color.rwBackground)
-                .onChange(of: messages.count) { _ in
+                .onChange(of: chatVM.messages.count) { _ in
                     withAnimation {
-                        proxy.scrollTo(messages.count - 1, anchor: .bottom)
+                        proxy.scrollTo(chatVM.messages.count - 1, anchor: .bottom)
                     }
                 }
             }
@@ -302,16 +266,26 @@ struct ChatView: View {
         }
         .navigationBarHidden(true)
         .background(Color.rwBackground)
+        .onAppear {
+            chatVM.fetchMessages(conversationID: conversation.id, currentUserID: currentUserID)
+            chatVM.markAsRead(conversationID: conversation.id, userID: currentUserID)
+        }
     }
 
     func sendMessage() {
         guard !messageText.isEmpty else { return }
-        withAnimation {
-            messages.append((messageText, true))
-            messageText = ""
-        }
+        let text = messageText
+        messageText = ""
+        chatVM.sendMessage(
+            text: text,
+            senderID: currentUserID,
+            receiverID: conversation.otherUserID,
+            productID: conversation.productID,
+            conversationID: conversation.id
+        )
     }
 }
 
-#Preview("Inbox") { InboxView() }
-#Preview("Chat") { ChatView() }
+#Preview("Inbox") {
+    InboxView().environmentObject(AuthViewModel(autoLoginEnabled: false))
+}
