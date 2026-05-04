@@ -76,6 +76,57 @@ class ChatViewModel: ObservableObject {
             "isRead": true
         ])
     }
+    func getOrCreateConversation(
+        buyerID: String,
+        buyerName: String,
+        sellerID: String,
+        sellerName: String,
+        productID: String,
+        productTitle: String,
+        completion: @escaping (Conversation) -> Void
+    ) {
+        // Check if a conversation already exists for this buyer+seller+product
+        db.collection("conversations")
+            .whereField("participants", arrayContains: buyerID)
+            .getDocuments { snapshot, _ in
+                if let existing = snapshot?.documents.compactMap({ try? $0.data(as: Conversation.self) })
+                    .first(where: { $0.otherUserID == sellerID && $0.productID == productID }) {
+                    completion(existing)
+                    return
+                }
+
+                // Create a new one
+                let id = UUID().uuidString
+                let conversation = Conversation(
+                    id: id,
+                    otherUserID: sellerID,
+                    otherUserName: sellerName,
+                    otherUserInitials: String(sellerName.prefix(2)).uppercased(),
+                    productID: productID,
+                    productTitle: productTitle,
+                    lastMessage: "",
+                    lastMessageDate: Date(),
+                    hasUnread: false
+                )
+
+                let data: [String: Any] = [
+                    "id": id,
+                    "participants": [buyerID, sellerID],
+                    "otherUserID": sellerID,
+                    "otherUserName": sellerName,
+                    "otherUserInitials": String(sellerName.prefix(2)).uppercased(),
+                    "productID": productID,
+                    "productTitle": productTitle,
+                    "lastMessage": "",
+                    "lastMessageDate": Timestamp(),
+                    "hasUnread": false
+                ]
+
+                self.db.collection("conversations").document(id).setData(data) { _ in
+                    completion(conversation)
+                }
+            }
+    }
 }
 
 @MainActor

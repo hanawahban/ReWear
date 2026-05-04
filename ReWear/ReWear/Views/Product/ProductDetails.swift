@@ -11,6 +11,9 @@ struct ProductDetailView: View {
     @State private var isFavorited = false
     @State private var currentImage = 0
     @State private var showReview = false
+    @State private var activeConversation: Conversation? = nil
+    @State private var navigateToChat = false
+    @StateObject private var chatVM = ChatViewModel()
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -264,7 +267,20 @@ struct ProductDetailView: View {
                     )
                 }
 
-                NavigationLink(destination: InboxView()) {
+                Button {
+                    guard let currentUser = authViewModel.currentUser else { return }
+                    chatVM.getOrCreateConversation(
+                        buyerID: currentUser.id,
+                        buyerName: currentUser.name,
+                        sellerID: product.sellerID,
+                        sellerName: product.sellerName,
+                        productID: product.id,
+                        productTitle: product.title
+                    ) { conversation in
+                        activeConversation = conversation
+                        navigateToChat = true
+                    }
+                } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "message")
                             .font(.system(size: 14, weight: .semibold))
@@ -276,6 +292,11 @@ struct ProductDetailView: View {
                     .padding(.vertical, 15)
                     .background(Color.rwPrimary)
                     .cornerRadius(14)
+                }
+                .navigationDestination(isPresented: $navigateToChat) {
+                    if let conv = activeConversation {
+                        ChatView(conversation: conv, currentUserID: authViewModel.currentUser?.id ?? "")
+                    }
                 }
             }
             .padding(.horizontal, 20)

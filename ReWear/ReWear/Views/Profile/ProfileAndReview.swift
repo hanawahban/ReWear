@@ -71,6 +71,12 @@ struct ProfileView: View {
                                     Text("@\(user.name.replacingOccurrences(of: " ", with: "")) · \(user.location.isEmpty ? "Unknown" : user.location)")
                                         .font(.rwCaption)
                                         .foregroundColor(Color.rwTextSecondary)
+                                    if !user.bio.isEmpty {
+                                        Text(user.bio)
+                                            .font(.rwCaption)
+                                            .foregroundColor(Color.rwTextSecondary)
+                                            .multilineTextAlignment(.center)
+                                    }
                                     HStack(spacing: 4) {
                                         RWStarRating(rating: user.rating, size: 13)
                                         Text(String(format: "%.1f · %d reviews", user.rating, user.reviewCount))

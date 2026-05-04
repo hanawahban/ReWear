@@ -242,18 +242,28 @@ struct RWProductCard: View {
 
             // Image
             ZStack(alignment: .topTrailing) {
-                            if !imageURL.isEmpty, let url = URL(string: imageURL) {
-                                AsyncImage(url: url) { image in
-                                    image.resizable().scaledToFill()
-                                } placeholder: {
-                                    RWImagePlaceholder(height: 160, icon: "tshirt")
-                                }
+                if !imageURL.isEmpty, let url = URL(string: imageURL) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 160)
+                            .clipped()
+                    } placeholder: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.rwSageTint)
+                            Image(systemName: "tshirt")
+                                .font(.system(size: 32))
+                                .foregroundColor(Color.rwSage)
                                 .frame(height: 160)
-                                .clipped()
-                                .cornerRadius(12)
-                            } else {
-                                RWImagePlaceholder(height: 160, icon: "tshirt")
-                            }
+                        }
+                    }
+                    .cornerRadius(12)
+                } else {
+                    RWImagePlaceholder(height: 160, icon: "tshirt")
+                }
 
                 // Favorite button
                 Image(systemName: isFavorited ? "heart.fill" : "heart")
