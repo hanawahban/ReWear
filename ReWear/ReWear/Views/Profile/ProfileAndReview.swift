@@ -7,6 +7,7 @@ struct ProfileView: View {
     @EnvironmentObject var productViewModel: ProductViewModel
     @StateObject private var reviewVM = ReviewViewModel()
 
+    @State private var showEditSheet = false
     @State private var selectedTab = 0
     @State private var selectedPhoto: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
@@ -96,6 +97,7 @@ struct ProfileView: View {
 
                             HStack(spacing: 10) {
                                 RWOutlineButton(label: "Edit Profile")
+                                    .onTapGesture { showEditSheet = true }
                                 RWOutlineButton(label: "Share", icon: "square.and.arrow.up")
                                     .frame(width: 100)
                             }
@@ -225,6 +227,10 @@ struct ProfileView: View {
                 }
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $showEditSheet) {
+                EditProfileSheet()
+                    .environmentObject(authViewModel)
+            }
             .onAppear {
                 if let uid = authViewModel.currentUser?.id {
                     productViewModel.fetchMyListings(sellerID: uid)
@@ -554,6 +560,144 @@ struct RWProfileLink: View {
         .background(Color.rwSurface)
         .cornerRadius(12)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.rwBorder, lineWidth: 1))
+    }
+}
+
+struct EditProfileSheet: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @Environment(\.dismiss) var dismiss
+
+    @State private var name: String = ""
+    @State private var bio: String = ""
+    @State private var selectedPhoto: PhotosPickerItem? = nil
+    @State private var profileImage: UIImage? = nil
+    @State private var showSuccess = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.rwBackground.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 24) {
+
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            ZStack(alignment: .bottomTrailing) {
+                                if let profileImage {
+                                    Image(uiImage: profileImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 84, height: 84)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.rwBorder, lineWidth: 1))
+                                } else if let urlString = authViewModel.currentUser?.profileImageURL,
+                                          !urlString.isEmpty,
+                                          let url = URL(string: urlString) {
+                                    AsyncImage(url: url) { img in
+                                        img.resizable().scaledToFill()
+                                    } placeholder: {
+                                        RWAvatar(initials: authViewModel.currentUser?.initials ?? "", size: 84)
+                                    }
+                                    .frame(width: 84, height: 84)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.rwBorder, lineWidth: 1))
+                                } else {
+                                    RWAvatar(initials: authViewModel.currentUser?.initials ?? "", size: 84)
+                                }
+                                ZStack {
+                                    Circle().fill(Color.rwPrimary).frame(width: 26, height: 26)
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+                        .onChange(of: selectedPhoto) { _, newItem in
+                            Task {
+                                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                                   let image = UIImage(data: data) {
+                                    profileImage = image
+                                }
+                            }
+                        }
+
+                        VStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Name")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                TextField("Your name", text: $name)
+                                    .font(.rwBody)
+                                    .padding(12)
+                                    .background(Color.rwSurface)
+                                    .cornerRadius(10)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.rwBorder, lineWidth: 1))
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Bio")
+                                    .font(.rwCaption)
+                                    .foregroundColor(Color.rwTextSecondary)
+                                TextField("Tell buyers about yourself", text: $bio, axis: .vertical)
+                                    .font(.rwBody)
+                                    .lineLimit(3...5)
+                                    .padding(12)
+                                    .background(Color.rwSurface)
+                                    .cornerRadius(10)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.rwBorder, lineWidth: 1))
+                            }
+                        }
+                        .padding(.horizontal, 20)
+
+                        if showSuccess {
+                            Text("Profile updated!")
+                                .font(.rwCaption)
+                                .foregroundColor(Color.rwSage)
+                        }
+
+                        Button {
+                            authViewModel.updateProfile(name: name, bio: bio, image: profileImage) { success in
+                                if success {
+                                    showSuccess = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { dismiss() }
+                                }
+                            }
+                        } label: {
+                            if authViewModel.isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.rwPrimary)
+                                    .cornerRadius(12)
+                            } else {
+                                Text("Save Changes")
+                                    .font(.rwBodyBold)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.rwPrimary)
+                                    .cornerRadius(12)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.top, 24)
+                }
+            }
+            .navigationTitle("Edit Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(Color.rwPrimary)
+                }
+            }
+            .onAppear {
+                name = authViewModel.currentUser?.name ?? ""
+                bio = authViewModel.currentUser?.bio ?? ""
+            }
+        }
     }
 }
 

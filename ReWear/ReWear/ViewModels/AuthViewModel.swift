@@ -49,9 +49,9 @@ class AuthViewModel: ObservableObject {
                 return
             }
             
-            let changeRequest = result.user.createProfileChangeRequest()
-            changeRequest.displayName = name
-            changeRequest.commitChanges { _ in }
+            let changeRequest = result?.user.createProfileChangeRequest()
+            changeRequest?.displayName = name
+            changeRequest!.commitChanges { _ in }
 
             let userData: [String: Any] = [
                 "uid": user.uid,
@@ -240,6 +240,49 @@ class AuthViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.currentUser = user
             }
+        }
+    }
+    
+    func updateProfile(name: String, bio: String, image: UIImage?, completion: @escaping (Bool) -> Void) {
+        guard let uid = Auth.auth().currentUser?.uid else { completion(false); return }
+        let db = Firestore.firestore()
+        isLoading = true
+
+        func saveTextFields(pfpURL: String) {
+            let updates: [String: Any] = [
+                "userName": name,
+                "bio": bio,
+                "pfpURL": pfpURL
+            ]
+            db.collection("users").document(uid).updateData(updates) { error in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if let error = error {
+                        print("Profile update error: \(error.localizedDescription)")
+                        completion(false)
+                    } else {
+                        self.fetchUser(id: uid)
+                        completion(true)
+                    }
+                }
+            }
+        }
+
+        if let image = image, let imageData = image.jpegData(compressionQuality: 0.7) {
+            let storageRef = Storage.storage().reference().child("profileImages/\(uid).jpg")
+            storageRef.putData(imageData, metadata: nil) { _, error in
+                if let error = error {
+                    print("Image upload error: \(error.localizedDescription)")
+                    DispatchQueue.main.async { self.isLoading = false }
+                    completion(false)
+                    return
+                }
+                storageRef.downloadURL { url, _ in
+                    saveTextFields(pfpURL: url?.absoluteString ?? self.currentUser?.profileImageURL ?? "")
+                }
+            }
+        } else {
+            saveTextFields(pfpURL: currentUser?.profileImageURL ?? "")
         }
     }
 }
