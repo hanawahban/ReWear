@@ -96,7 +96,7 @@ struct ProfileView: View {
                             }
 
                             HStack(spacing: 10) {
-                                RWOutlineButton(label: "Edit Profile")
+                                RWOutlineButton(label: "Edit Profile", action: { showEditSheet = true })
                                     .onTapGesture { showEditSheet = true }
                                 RWOutlineButton(label: "Share", icon: "square.and.arrow.up")
                                     .frame(width: 100)
@@ -189,7 +189,8 @@ struct ProfileView: View {
                                                 price: item.formattedPrice,
                                                 location: item.location,
                                                 condition: item.condition,
-                                                rating: item.rating
+                                                rating: item.rating,
+                                                imageURL: item.imageURLs.first ?? ""
                                             )
                                         }
                                         .buttonStyle(.plain)

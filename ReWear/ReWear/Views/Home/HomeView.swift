@@ -166,7 +166,8 @@ struct HomeView: View {
                                             price: product.formattedPrice,
                                             location: product.location,
                                             condition: product.condition,
-                                            rating: product.rating
+                                            rating: product.rating,
+                                            imageURL: product.imageURLs.first ?? ""
                                         )
                                     }
                                     .buttonStyle(.plain)

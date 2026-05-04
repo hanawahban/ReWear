@@ -70,7 +70,8 @@ struct FavoritesView: View {
                                                 location: item.location,
                                                 condition: item.condition,
                                                 rating: item.rating,
-                                                isFavorited: true
+                                                isFavorited: true,
+                                                imageURL: item.imageURLs.first ?? ""
                                             )
                                         }
                                         .buttonStyle(.plain)

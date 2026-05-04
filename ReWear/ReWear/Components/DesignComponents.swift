@@ -235,13 +235,25 @@ struct RWProductCard: View {
     var condition: String = "Like New"
     var rating: Double = 4.5
     var isFavorited: Bool = false
+    var imageURL: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
 
             // Image
             ZStack(alignment: .topTrailing) {
-                RWImagePlaceholder(height: 160, icon: "tshirt")
+                            if !imageURL.isEmpty, let url = URL(string: imageURL) {
+                                AsyncImage(url: url) { image in
+                                    image.resizable().scaledToFill()
+                                } placeholder: {
+                                    RWImagePlaceholder(height: 160, icon: "tshirt")
+                                }
+                                .frame(height: 160)
+                                .clipped()
+                                .cornerRadius(12)
+                            } else {
+                                RWImagePlaceholder(height: 160, icon: "tshirt")
+                            }
 
                 // Favorite button
                 Image(systemName: isFavorited ? "heart.fill" : "heart")
