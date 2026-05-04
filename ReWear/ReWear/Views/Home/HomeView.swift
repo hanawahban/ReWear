@@ -56,12 +56,9 @@ struct HomeView: View {
                                 .foregroundColor(Color.rwPrimary)
                                 .kerning(4)
                             HStack(spacing: 4) {
-                                Image(systemName: "mappin.fill")
+                                Image(systemName: "mappin")
                                     .font(.system(size: 11))
                                     .foregroundColor(Color.rwSage)
-                                Text("Manama, Bahrain")
-                                    .font(.rwMicro)
-                                    .foregroundColor(Color.rwTextSecondary)
                             }
                         }
                         Spacer()

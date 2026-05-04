@@ -8,6 +8,8 @@ struct MapView: View {
     @StateObject private var locationVM = LocationViewModel()
 
     @State private var selectedRadius: Double = 5.0
+    @State private var mapLoaded = false
+    
     @State private var position = MapCameraPosition.region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 26.0667, longitude: 50.5577),
@@ -29,7 +31,6 @@ struct MapView: View {
     }
 
     var body: some View {
-        NavigationStack {
             ZStack {
                 Color.rwBackground.ignoresSafeArea()
 
@@ -64,50 +65,47 @@ struct MapView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 12)
 
-                    Map(position: $position) {
-                        MapCircle(center: userCoordinate, radius: selectedRadius * 1000)
-                            .foregroundStyle(Color.rwPrimary.opacity(0.08))
-                            .stroke(Color.rwPrimary.opacity(0.3), lineWidth: 1)
-
-                        ForEach(filteredProducts) { product in
-                            Annotation(product.title, coordinate: CLLocationCoordinate2D(
-                                latitude: product.latitude,
-                                longitude: product.longitude
-                            )) {
-                                VStack(spacing: 0) {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.rwPrimary)
-                                            .frame(width: 70, height: 36)
-                                        VStack(spacing: 1) {
-                                            Image(systemName: "tshirt")
-                                                .font(.system(size: 9, weight: .medium))
-                                                .foregroundColor(.white)
-                                            Text(product.formattedPrice)
-                                                .font(.system(size: 10, weight: .bold))
-                                                .foregroundColor(.white)
+                    if mapLoaded {
+                        Map(position: $position) {
+                            ForEach(filteredProducts) { product in
+                                Annotation(product.title, coordinate: CLLocationCoordinate2D(
+                                    latitude: product.latitude,
+                                    longitude: product.longitude
+                                )) {
+                                    VStack(spacing: 0) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color.rwPrimary)
+                                                .frame(width: 70, height: 36)
+                                            VStack(spacing: 1) {
+                                                Image(systemName: "tshirt")
+                                                    .font(.system(size: 9, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                Text(product.formattedPrice)
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.white)
+                                            }
                                         }
+                                        Triangle()
+                                            .fill(Color.rwPrimary)
+                                            .frame(width: 10, height: 6)
+                                            .offset(y: -2)
                                     }
-                                    Triangle()
-                                        .fill(Color.rwPrimary)
-                                        .frame(width: 10, height: 6)
-                                        .offset(y: -2)
                                 }
                             }
+                            UserAnnotation()
                         }
-
-                        UserAnnotation()
-                    }
-                    .mapStyle(.standard(elevation: .flat))
-                    .frame(height: 300)
-                    .onChange(of: selectedRadius) { _, _ in
-                        let delta = (selectedRadius / 111.0) * 2.5
-                        withAnimation {
-                            position = .region(MKCoordinateRegion(
-                                center: userCoordinate,
-                                span: MKCoordinateSpan(latitudeDelta: delta, longitudeDelta: delta)
-                            ))
-                        }
+                        .mapStyle(.standard(elevation: .flat))
+                        .frame(height: 300)
+                    } else {
+                        Color.rwSageTint
+                            .frame(height: 300)
+                            .overlay(ProgressView())
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    mapLoaded = true
+                                }
+                            }
                     }
 
                     HStack(spacing: 12) {
@@ -175,9 +173,18 @@ struct MapView: View {
                 locationVM.requestPermission()
                 productViewModel.fetchProducts()
             }
+            onChange(of: locationVM.userLocation?.latitude) { _, _ in
+                let delta = (selectedRadius / 111.0) * 2.5
+                withAnimation {
+                    position = .region(MKCoordinateRegion(
+                        center: userCoordinate,
+                        span: MKCoordinateSpan(latitudeDelta: delta, longitudeDelta: delta)
+                    ))
+                }
+            }
+
         }
     }
-}
 
 struct RWNearbyCard: View {
     var title: String
