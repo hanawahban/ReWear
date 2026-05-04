@@ -5,6 +5,9 @@ struct ProductDetailView: View {
     var product: Product = .mock
 
     @StateObject private var reviewVM = ReviewViewModel()
+    @EnvironmentObject var productViewModel: ProductViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+
     @State private var isFavorited = false
     @State private var currentImage = 0
     @State private var showReview = false
@@ -63,7 +66,7 @@ struct ProductDetailView: View {
                             }
                             Spacer()
                             HStack(spacing: 10) {
-                                Button(action: { isFavorited.toggle() }) {
+                                Button(action: { toggleFavorite() }) {
                                     Image(systemName: isFavorited ? "heart.fill" : "heart")
                                         .font(.system(size: 16, weight: .semibold))
                                         .foregroundColor(isFavorited ? Color.rwPrimary : Color.rwTextSecondary)
@@ -193,10 +196,7 @@ struct ProductDetailView: View {
                         RWDivider()
 
                         VStack(alignment: .leading, spacing: 14) {
-                            RWSectionHeader(
-                                title: "Reviews",
-                                actionLabel: "See all"
-                            )
+                            RWSectionHeader(title: "Reviews", actionLabel: "See all")
 
                             if reviewVM.isLoading {
                                 HStack {
@@ -246,7 +246,7 @@ struct ProductDetailView: View {
             }
 
             HStack(spacing: 12) {
-                Button(action: { isFavorited.toggle() }) {
+                Button(action: { toggleFavorite() }) {
                     HStack(spacing: 6) {
                         Image(systemName: isFavorited ? "heart.fill" : "heart")
                             .font(.system(size: 14, weight: .semibold))
@@ -289,10 +289,19 @@ struct ProductDetailView: View {
         .ignoresSafeArea(edges: .top)
         .onAppear {
             reviewVM.fetchReviews(sellerID: product.sellerID)
+            isFavorited = productViewModel.isFavorited(product)
         }
         .sheet(isPresented: $showReview) {
             ReviewView(sellerID: product.sellerID, productID: product.id)
         }
+    }
+
+    func toggleFavorite() {
+        isFavorited.toggle()
+        productViewModel.toggleFavorite(
+            product: product,
+            userID: authViewModel.currentUser?.id ?? ""
+        )
     }
 }
 

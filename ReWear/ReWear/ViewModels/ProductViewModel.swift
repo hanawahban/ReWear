@@ -137,7 +137,7 @@ class ProductViewModel: ObservableObject {
                 brand: brand,
                 imageURLs: imageURLs,
                 sellerID: user.uid,
-                sellerName: user.email ?? "Unknown User",
+                sellerName: Auth.auth().currentUser?.displayName ?? user.email ?? "Unknown User",
                 latitude: coord?.0 ?? 0.0,
                 longitude: coord?.1 ?? 0.0,
                 location: location,
@@ -176,10 +176,17 @@ class ProductViewModel: ObservableObject {
     }
 
     func toggleFavorite(product: Product, userID: String) {
+        let favRef = db.collection("users").document(userID)
+            .collection("favorites").document(product.id)
+
         if favoriteProducts.contains(where: { $0.id == product.id }) {
+            // Remove from favorites
             favoriteProducts.removeAll { $0.id == product.id }
+            favRef.delete()
         } else {
+            // Add to favorites
             favoriteProducts.append(product)
+            try? favRef.setData(from: product)
         }
     }
 
@@ -188,9 +195,21 @@ class ProductViewModel: ObservableObject {
     }
 
     func fetchFavorites(userID: String) {
-        favoriteProducts = Array(Product.mockList.prefix(3))
+        db.collection("users").document(userID)
+            .collection("favorites")
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching favorites: \(error.localizedDescription)")
+                    return
+                }
+                guard let documents = snapshot?.documents else { return }
+                let fetched: [Product] = documents.compactMap { try? $0.data(as: Product.self) }
+                DispatchQueue.main.async {
+                    self.favoriteProducts = fetched
+                }
+            }
     }
-
+    
     func applyFilters() {
         var result = products
 

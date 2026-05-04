@@ -2,7 +2,8 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var productViewModel: ProductViewModel
-
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
     @State private var searchText = ""
     @State private var selectedCategory = "All"
     @State private var selectedCondition = "Any"
@@ -180,7 +181,11 @@ struct HomeView: View {
             .navigationBarHidden(true)
             .onAppear {
                 productViewModel.fetchProducts()
+                if let uid = authViewModel.currentUser?.id {
+                    productViewModel.fetchFavorites(userID: uid)
+                }
             }
+
             .sheet(isPresented: $showFilterSheet) {
                 SearchFilterView(
                     selectedCategory: $selectedCategory,

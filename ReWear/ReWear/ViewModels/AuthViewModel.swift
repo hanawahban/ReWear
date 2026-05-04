@@ -48,6 +48,10 @@ class AuthViewModel: ObservableObject {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
             }
+            
+            let changeRequest = result.user.createProfileChangeRequest()
+            changeRequest.displayName = name
+            changeRequest.commitChanges { _ in }
 
             let userData: [String: Any] = [
                 "uid": user.uid,
