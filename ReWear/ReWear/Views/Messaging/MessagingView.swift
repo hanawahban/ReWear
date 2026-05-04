@@ -310,7 +310,6 @@ struct ChatView: View {
             messages.append((messageText, true))
             messageText = ""
         }
-        //Replace with ChatViewModel.sendMessage()
     }
 }
 
