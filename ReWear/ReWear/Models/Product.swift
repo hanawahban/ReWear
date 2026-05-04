@@ -1,7 +1,7 @@
 import Foundation
 import CoreLocation
 
-struct Product: Identifiable, Codable {
+struct Product: Identifiable, Codable{
     var id: String
     var title: String
     var description: String
@@ -29,7 +29,6 @@ struct Product: Identifiable, Codable {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
-    //mock data
     static let mock = Product(
         id: "mock_001",
         title: "Linen Blazer — Beige",

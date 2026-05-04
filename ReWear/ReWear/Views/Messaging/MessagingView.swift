@@ -225,7 +225,7 @@ struct ChatView: View {
                     .padding(16)
                 }
                 .background(Color.rwBackground)
-                .onChange(of: chatVM.messages.count) { _ in
+                .onChange(of: chatVM.messages.count) { _, _ in
                     withAnimation {
                         proxy.scrollTo(chatVM.messages.count - 1, anchor: .bottom)
                     }

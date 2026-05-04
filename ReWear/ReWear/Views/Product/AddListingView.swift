@@ -135,7 +135,7 @@ struct AddListingView: View {
 
                             RWTextField(placeholder: "Title e.g. Zara linen blazer", text: $title)
 
-                            RWTextField(placeholder: "Brand (optional)", icon: "tag", text: $brand)
+                            RWTextField(placeholder: "Brand (optional)", text: $brand, icon: "tag")
 
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Description")

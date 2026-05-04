@@ -5,7 +5,6 @@ import FirebaseStorage
 import FirebaseAuth
 import Combine
 
-@MainActor
 class ProductViewModel: ObservableObject {
 
     @Published var products: [Product] = []
@@ -43,8 +42,8 @@ class ProductViewModel: ObservableObject {
                 }
                 guard let documents = snapshot?.documents else { return }
 
-                let fetched = documents.compactMap { doc -> Product? in
-                    try? doc.data(as: Product.self)
+                let fetched: [Product] = documents.compactMap { doc in
+                    try? doc.data(as: Product.self) as Product?
                 }
 
                 DispatchQueue.main.async {
@@ -61,7 +60,7 @@ class ProductViewModel: ObservableObject {
                 completion(nil)
                 return
             }
-            guard let snap = snap, let product = try? snap.data(as: Product.self) else {
+            guard let snap = snap, let product: Product = try? snap.data(as: Product.self) else {
                 completion(nil)
                 return
             }
@@ -80,8 +79,8 @@ class ProductViewModel: ObservableObject {
                 }
                 guard let documents = snapshot?.documents else { return }
 
-                let fetched = documents.compactMap { doc -> Product? in
-                    try? doc.data(as: Product.self)
+                let fetched: [Product] = documents.compactMap { doc in
+                    try? doc.data(as: Product.self) as Product?
                 }
 
                 DispatchQueue.main.async {

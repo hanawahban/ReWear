@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseCore
+import GoogleSignIn
 
 @main
 struct ReWearApp: App {
@@ -15,6 +16,9 @@ struct ReWearApp: App {
             MainView()
                 .environmentObject(authViewModel)
                 .environmentObject(productViewModel)
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
     }
 }

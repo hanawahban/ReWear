@@ -5,6 +5,7 @@ import FirebaseCore
 import FirebaseAuth
 import FirebaseStorage
 import FirebaseFirestore
+import GoogleSignIn
 
 class AuthViewModel: ObservableObject {
 
@@ -21,7 +22,6 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-
     func checkCurrentUser() {
         if let firebaseUser = Auth.auth().currentUser {
             self.fetchUser(id: firebaseUser.uid)
@@ -37,7 +37,6 @@ class AuthViewModel: ObservableObject {
 
         Auth.auth().createUser(withEmail: email, password: password) { result, error in
             if let error = error {
-                print("Authentication Error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.isLoading = false
                     self.errorMessage = error.localizedDescription
@@ -84,7 +83,6 @@ class AuthViewModel: ObservableObject {
 
         Auth.auth().signIn(withEmail: email, password: password) { result, error in
             if let error = error {
-                print("Login error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.errorMessage = error.localizedDescription
                     self.isLoading = false
@@ -105,17 +103,109 @@ class AuthViewModel: ObservableObject {
         }
     }
 
+    func signInWithGoogle() {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            self.errorMessage = "Missing Firebase client ID"
+            return
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            self.errorMessage = "Cannot find root view controller"
+            return
+        }
+
+        isLoading = true
+
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.errorMessage = error.localizedDescription
+                    self.isLoading = false
+                }
+                return
+            }
+
+            guard
+                let user = result?.user,
+                let idToken = user.idToken?.tokenString
+            else {
+                DispatchQueue.main.async { self.isLoading = false }
+                return
+            }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: user.accessToken.tokenString
+            )
+
+            Auth.auth().signIn(with: credential) { authResult, error in
+                if let error = error {
+                    DispatchQueue.main.async {
+                        self.errorMessage = error.localizedDescription
+                        self.isLoading = false
+                    }
+                    return
+                }
+
+                guard let uid = authResult?.user.uid else {
+                    DispatchQueue.main.async { self.isLoading = false }
+                    return
+                }
+
+                let db = Firestore.firestore()
+                db.collection("users").document(uid).getDocument { snap, _ in
+                    DispatchQueue.main.async {
+                        if let snap = snap, snap.exists {
+                            // Existing user — just fetch
+                            self.fetchUser(id: uid)
+                            self.isLoggedIn = true
+                            self.isLoading = false
+                        } else {
+                            // New Google user — create profile
+                            let userData: [String: Any] = [
+                                "uid": uid,
+                                "userName": user.profile?.name ?? "User",
+                                "email": user.profile?.email ?? "",
+                                "pfpURL": user.profile?.imageURL(withDimension: 200)?.absoluteString ?? "",
+                                "location": "[0° N, 0° E]",
+                                "rating": 1.0,
+                                "reviewCount": 0,
+                                "listingCount": 0,
+                                "joinDate": Timestamp(),
+                                "bio": ""
+                            ]
+                            db.collection("users").document(uid).setData(userData) { error in
+                                DispatchQueue.main.async {
+                                    if let error = error {
+                                        self.errorMessage = error.localizedDescription
+                                    } else {
+                                        self.fetchUser(id: uid)
+                                        self.isLoggedIn = true
+                                    }
+                                    self.isLoading = false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     func logOut() {
         do {
             try Auth.auth().signOut()
+            GIDSignIn.sharedInstance.signOut()
             self.currentUser = nil
             self.isLoggedIn = false
-            print(" Logged out successfully")
         } catch {
             print("Error signing out: \(error.localizedDescription)")
         }
     }
-
 
     func fetchUser(id: String) {
         let db = Firestore.firestore()
