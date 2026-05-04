@@ -33,6 +33,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		3A4CC98E2FA93D68006A4D12 /* saar.gpx */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = saar.gpx; path = ../../saar.gpx; sourceTree = "<group>"; };
 		3ABAFF702FA27B3A00099628 /* ReWear.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ReWear.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ABAFF7F2FA27B3C00099628 /* ReWearTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReWearTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ABAFF892FA27B3C00099628 /* ReWearUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReWearUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -103,6 +104,7 @@
 		3ABAFF672FA27B3900099628 = {
 			isa = PBXGroup;
 			children = (
+				3A4CC98E2FA93D68006A4D12 /* saar.gpx */,
 				3ABAFF722FA27B3A00099628 /* ReWear */,
 				3ABAFF822FA27B3C00099628 /* ReWearTests */,
 				3ABAFF8C2FA27B3C00099628 /* ReWearUITests */,

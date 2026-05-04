@@ -1,28 +1,32 @@
 import SwiftUI
 import MapKit
+import CoreLocation
 
 struct MapView: View {
 
+    @EnvironmentObject var productViewModel: ProductViewModel
+    @StateObject private var locationVM = LocationViewModel()
+
+    @State private var selectedRadius: Double = 5.0
     @State private var position = MapCameraPosition.region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 26.0667, longitude: 50.5577),
             span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
         )
     )
-    @State private var selectedRadius = 5.0
 
-    let mockPins = [
-        MapPin(name: "Linen Blazer", price: "BHD 8.5", coordinate: CLLocationCoordinate2D(latitude: 26.068, longitude: 50.558)),
-        MapPin(name: "Floral Dress", price: "BHD 5.0", coordinate: CLLocationCoordinate2D(latitude: 26.065, longitude: 50.562)),
-        MapPin(name: "Leather Bag", price: "BHD 12.0", coordinate: CLLocationCoordinate2D(latitude: 26.070, longitude: 50.555)),
-    ]
+    private var userCoordinate: CLLocationCoordinate2D {
+        locationVM.userLocation ?? CLLocationCoordinate2D(latitude: 26.0667, longitude: 50.5577)
+    }
 
-    let nearbyItems: [(String, String, String)] = [
-        ("Linen Blazer", "BHD 8.500", "0.3 km"),
-        ("Floral Dress", "BHD 5.000", "0.6 km"),
-        ("Leather Bag", "BHD 12.000", "1.1 km"),
-        ("Wool Coat", "BHD 18.000", "1.8 km"),
-    ]
+    private var filteredProducts: [Product] {
+        productViewModel.products.filter { product in
+            let productLoc = CLLocation(latitude: product.latitude, longitude: product.longitude)
+            let userLoc = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
+            let distanceKm = productLoc.distance(from: userLoc) / 1000
+            return distanceKm <= selectedRadius
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -36,11 +40,17 @@ struct MapView: View {
                             .font(.rwTitle)
                             .foregroundColor(Color.rwTextPrimary)
                         Spacer()
-                        Button(action: {}) {
+                        Button(action: {
+                            locationVM.requestPermission()
+                            position = .region(MKCoordinateRegion(
+                                center: userCoordinate,
+                                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                            ))
+                        }) {
                             HStack(spacing: 6) {
                                 Image(systemName: "location.fill")
                                     .font(.system(size: 12))
-                                Text("Manama")
+                                Text(locationVM.currentCity)
                                     .font(.rwCaptionBold)
                             }
                             .foregroundColor(.white)
@@ -55,38 +65,50 @@ struct MapView: View {
                     .padding(.bottom, 12)
 
                     Map(position: $position) {
-                        ForEach(mockPins) { pin in
-                            Annotation(pin.name, coordinate: pin.coordinate) {
+                        MapCircle(center: userCoordinate, radius: selectedRadius * 1000)
+                            .foregroundStyle(Color.rwPrimary.opacity(0.08))
+                            .stroke(Color.rwPrimary.opacity(0.3), lineWidth: 1)
+
+                        ForEach(filteredProducts) { product in
+                            Annotation(product.title, coordinate: CLLocationCoordinate2D(
+                                latitude: product.latitude,
+                                longitude: product.longitude
+                            )) {
                                 VStack(spacing: 0) {
-                                    VStack(spacing: 2) {
-                                        ZStack {
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .fill(Color.rwPrimary)
-                                                .frame(width: 44, height: 44)
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.rwPrimary)
+                                            .frame(width: 70, height: 36)
+                                        VStack(spacing: 1) {
                                             Image(systemName: "tshirt")
-                                                .font(.system(size: 18, weight: .thin))
+                                                .font(.system(size: 9, weight: .medium))
+                                                .foregroundColor(.white)
+                                            Text(product.formattedPrice)
+                                                .font(.system(size: 10, weight: .bold))
                                                 .foregroundColor(.white)
                                         }
-                                        Text(pin.price)
-                                            .font(.rwMicro)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color.rwPrimary)
-                                            .cornerRadius(4)
                                     }
-                                    Image(systemName: "arrowtriangle.down.fill")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(Color.rwPrimary)
+                                    Triangle()
+                                        .fill(Color.rwPrimary)
+                                        .frame(width: 10, height: 6)
                                         .offset(y: -2)
                                 }
                             }
                         }
+
                         UserAnnotation()
                     }
                     .mapStyle(.standard(elevation: .flat))
                     .frame(height: 300)
-                    .cornerRadius(0)
+                    .onChange(of: selectedRadius) { _, _ in
+                        let delta = (selectedRadius / 111.0) * 2.5
+                        withAnimation {
+                            position = .region(MKCoordinateRegion(
+                                center: userCoordinate,
+                                span: MKCoordinateSpan(latitudeDelta: delta, longitudeDelta: delta)
+                            ))
+                        }
+                    }
 
                     HStack(spacing: 12) {
                         Image(systemName: "location.circle.fill")
@@ -104,32 +126,55 @@ struct MapView: View {
                     .background(Color.rwSurface)
                     .overlay(alignment: .bottom) { RWDivider() }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Nearby pieces")
-                            .font(.rwHeading)
-                            .foregroundColor(Color.rwTextPrimary)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 14)
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Nearby pieces")
+                                .font(.rwHeading)
+                                .foregroundColor(Color.rwTextPrimary)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 14)
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(nearbyItems, id: \.0) { item in
-                                    NavigationLink(destination: ProductDetailView()) {
-                                        RWNearbyCard(title: item.0, price: item.1, distance: item.2)
+                            if filteredProducts.isEmpty {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "mappin.slash")
+                                        .font(.system(size: 28, weight: .thin))
+                                        .foregroundColor(Color.rwSage)
+                                    Text("No items within \(Int(selectedRadius)) km")
+                                        .font(.rwCaption)
+                                        .foregroundColor(Color.rwTextSecondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 30)
+                            } else {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 12) {
+                                        ForEach(filteredProducts) { product in
+                                            NavigationLink(destination: ProductDetailView(product: product)) {
+                                                RWNearbyCard(
+                                                    title: product.title,
+                                                    price: product.formattedPrice,
+                                                distance: locationVM.distance(to: product),
+                                        imageURL:
+                                            product.imageURLs.first ?? ""
+                                                )
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
                                     }
-                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 20)
+                                    .padding(.bottom, 16)
                                 }
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 16)
                         }
                     }
                     .background(Color.rwBackground)
-
-                    Spacer()
                 }
             }
             .navigationBarHidden(true)
+            .onAppear {
+                locationVM.requestPermission()
+                productViewModel.fetchProducts()
+            }
         }
     }
 }
@@ -138,27 +183,40 @@ struct RWNearbyCard: View {
     var title: String
     var price: String
     var distance: String
+    var imageURL: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.rwSageTint)
-                .frame(width: 130, height: 110)
-                .overlay(
-                    Image(systemName: "tshirt")
-                        .font(.system(size: 24, weight: .thin))
-                        .foregroundColor(Color.rwSage)
-                )
-
+            Group {
+                if imageURL.isEmpty {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.rwSageTint)
+                        .overlay(
+                            Image(systemName: "tshirt")
+                                .font(.system(size: 24, weight: .thin))
+                                .foregroundColor(Color.rwSage)
+                        )
+                } else {
+                    AsyncImage(url: URL(string: imageURL)) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.rwSageTint)
+                            .overlay(ProgressView())
+                    }
+                    .clipped()
+                }
+            }
+            .frame(width: 130, height: 110)
+            .cornerRadius(10)
+            
             Text(title)
                 .font(.rwCaptionBold)
                 .foregroundColor(Color.rwTextPrimary)
                 .lineLimit(1)
-
             Text(price)
                 .font(.rwBodyBold)
                 .foregroundColor(Color.rwPrimary)
-
             HStack(spacing: 3) {
                 Image(systemName: "mappin")
                     .font(.system(size: 9))
@@ -180,6 +238,17 @@ struct MapPin: Identifiable {
     let name: String
     let price: String
     let coordinate: CLLocationCoordinate2D
+}
+
+struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.closeSubpath()
+        return path
+    }
 }
 
 #Preview { MapView() }

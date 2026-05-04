@@ -6,6 +6,7 @@ struct AddListingView: View {
 
     @EnvironmentObject var productViewModel: ProductViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
+    @Environment(\.dismiss) var dismiss
 
     @State private var newlyCreatedProduct: Product? = nil
     @State private var navigateToDetail = false
@@ -293,9 +294,20 @@ struct AddListingView: View {
             .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {}
-                        .font(.rwBody)
-                        .foregroundColor(Color.rwTextSecondary)
+                    Button("Cancel") {
+                        // Reset all fields
+                        title = ""
+                        description = ""
+                        brand = ""
+                        price = ""
+                        selectedCategory = ""
+                        selectedCondition = ""
+                        selectedSize = ""
+                        selectedImages = []
+                        dismiss()
+                    }
+                    .font(.rwBody)
+                    .foregroundColor(Color.rwTextSecondary)
                 }
             }
             .navigationDestination(isPresented: $navigateToDetail) {
