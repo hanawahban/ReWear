@@ -2,14 +2,7 @@ import SwiftUI
 
 struct FavoritesView: View {
 
-    @State private var showEmpty = false
-
-    let savedItems: [(String, String, String, String, Double)] = [
-        ("Linen Blazer", "BHD 8.500", "Manama", "Like New", 4.8),
-        ("Floral Midi Dress", "BHD 5.000", "Riffa", "Good", 4.5),
-        ("Leather Tote Bag", "BHD 12.000", "Juffair", "Like New", 5.0),
-        ("Denim Jacket", "BHD 7.500", "Muharraq", "Good", 4.2),
-    ]
+    @EnvironmentObject var productViewModel: ProductViewModel
 
     var body: some View {
         NavigationStack {
@@ -23,11 +16,6 @@ struct FavoritesView: View {
                             .font(.rwTitle)
                             .foregroundColor(Color.rwTextPrimary)
                         Spacer()
-                        Button(action: { showEmpty.toggle() }) {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.system(size: 16))
-                                .foregroundColor(Color.rwPrimary)
-                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
@@ -35,7 +23,7 @@ struct FavoritesView: View {
 
                     RWDivider()
 
-                    if showEmpty {
+                    if productViewModel.favoriteProducts.isEmpty {
                         VStack(spacing: 20) {
                             Spacer()
                             ZStack {
@@ -56,15 +44,13 @@ struct FavoritesView: View {
                                     .multilineTextAlignment(.center)
                                     .lineSpacing(4)
                             }
-                            RWPrimaryButton(label: "Browse listings")
-                                .padding(.horizontal, 60)
                             Spacer()
                         }
                     } else {
                         ScrollView(showsIndicators: false) {
                             VStack(spacing: 16) {
                                 HStack {
-                                    Text("\(savedItems.count) saved pieces")
+                                    Text("\(productViewModel.favoriteProducts.count) saved pieces")
                                         .font(.rwCaption)
                                         .foregroundColor(Color.rwTextSecondary)
                                     Spacer()
@@ -76,14 +62,14 @@ struct FavoritesView: View {
                                     columns: [GridItem(.flexible()), GridItem(.flexible())],
                                     spacing: 14
                                 ) {
-                                    ForEach(savedItems, id: \.0) { item in
-                                        NavigationLink(destination: ProductDetailView()) {
+                                    ForEach(productViewModel.favoriteProducts) { item in
+                                        NavigationLink(destination: ProductDetailView(product: item)) {
                                             RWProductCard(
-                                                title: item.0,
-                                                price: item.1,
-                                                location: item.2,
-                                                condition: item.3,
-                                                rating: item.4,
+                                                title: item.title,
+                                                price: item.formattedPrice,
+                                                location: item.location,
+                                                condition: item.condition,
+                                                rating: item.rating,
                                                 isFavorited: true
                                             )
                                         }
@@ -102,4 +88,7 @@ struct FavoritesView: View {
     }
 }
 
-#Preview { FavoritesView() }
+#Preview {
+    FavoritesView()
+        .environmentObject(ProductViewModel())
+}
