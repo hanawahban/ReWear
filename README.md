@@ -1,13 +1,15 @@
-**ReWear**
+ReWear 👗
 
-A secondhand clothing marketplace for iOS. Browse, buy, and sell pre-loved fashion locally in Bahrain.
+A full-stack iOS marketplace for buying and selling secondhand fashion — because good style shouldn't end up in a landfill.
 
-ReWear connects buyers and sellers through clean listings, real-time chat, and location-based discovery, built entirely in SwiftUI with a Firebase backend.
+What is it?
+ReWear is a SwiftUI app built for the Bahrain secondhand market. Like OpenSooq, but specifically for fashion, with real-time chat, GPS-powered discovery, and a clean modern UI that makes thrifting feel cool.
 
-**Features**
+What it does
 
-- Post listings with photos, price, size & condition
-- Find items near you with GPS & MapKit
-- Message sellers directly in-app
-- Save favorites & browse by category/price
-- Rate and review sellers
+- Browse & discover — scroll through listings filtered by category, price, size, and condition
+- Find it nearby — GPS + MapKit shows you what's selling around you
+- Sell in seconds — snap photos, set your price, drop a pin
+- Chat in real time — message sellers
+- Save for later — wishlist anything, revisit anytime
+- Trust the community — ratings and reviews on every seller profile
