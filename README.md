@@ -1,4 +1,4 @@
-*ReWear* 
+**ReWear**
 A secondhand clothing marketplace for iOS. Browse, buy, and sell pre-loved fashion locally in Bahrain.
 
 ReWear connects buyers and sellers through clean listings, real-time chat, and location-based discovery, built entirely in SwiftUI with a Firebase backend.
